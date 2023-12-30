@@ -1,0 +1,13 @@
+{
+  "name": "classes",
+  "version": "1.0.0",
+  "main": "lib/index",
+  "license": "MIT",
+  "dependencies": {
+    "typescript": "^4.9.3"
+  },
+  "scripts": {
+    "start": "tsc --watch",
+    "build": "tsc --build"
+  }
+}

@@ -1,0 +1,11 @@
+.player {
+  position: absolute;
+  width: var(--d-paddle-width);
+  height: var(--d-paddle-height);
+  background: var(--c-main);
+  border-radius: 99px;
+
+  &.left {
+    margin-left: calc(0px - var(--d-paddle-width));
+  }
+}

@@ -1,0 +1,22 @@
+.app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.score {
+  font-family: 'Courier New', Courier, monospace;
+  width: calc(var(--d-board-width) - 2 * var(--d-board-padding));
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.controls {
+  display: flex;
+  margin-top: 32px;
+  gap: 16px;
+}

@@ -1,0 +1,12 @@
+{
+  "name": "pong-ai",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:realiarthur/pong-ai.git",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "classes",
+    "frontend"
+  ]
+}

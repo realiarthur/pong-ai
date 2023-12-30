@@ -1,0 +1,24 @@
+:root {
+  --c-main: #888;
+}
+
+body {
+  margin: 0;
+  font-family: Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #222;
+  color: var(--c-main);
+}
+
+button {
+  background: none;
+  outline: none;
+  color: var(--c-main);
+  border: 1px var(--c-main) solid;
+  border-radius: 2px;
+  padding: 8px 16px;
+  cursor: pointer;
+  text-transform: uppercase;
+  font-size: 12px;
+}
