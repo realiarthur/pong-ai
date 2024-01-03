@@ -1,13 +1,40 @@
-export declare const config: {
+declare let config: {
+    KEYBOARD_REPEAT_TIMEOUT: number;
     boardWidth: number;
     boardHeight: number;
     boardPadding: number;
-    ballRadius: number;
+    ballDiameter: number;
     paddleWidth: number;
     paddleHeight: number;
-    ballSpeed: number;
-    playerSpeed: number;
     maxBounceAngle: number;
+    playerSpeed: number;
+    ballSpeed: number;
     population: number;
-    mutationDelta: number;
+    moveStimulation: number;
+    bounceStimulation: number;
+    failStimulation: number;
+    maxMutation: number;
+    maxThreshold: number;
+    maxBias: number;
 };
+export declare const getConfig: () => {
+    KEYBOARD_REPEAT_TIMEOUT: number;
+    boardWidth: number;
+    boardHeight: number;
+    boardPadding: number;
+    ballDiameter: number;
+    paddleWidth: number;
+    paddleHeight: number;
+    maxBounceAngle: number;
+    playerSpeed: number;
+    ballSpeed: number;
+    population: number;
+    moveStimulation: number;
+    bounceStimulation: number;
+    failStimulation: number;
+    maxMutation: number;
+    maxThreshold: number;
+    maxBias: number;
+};
+export declare const setConfig: (values: Partial<typeof config>) => void;
+export {};

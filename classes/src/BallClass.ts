@@ -1,13 +1,13 @@
 import { PlayerClass, Side } from './PlayerClass'
-import { config } from './config'
+import { getConfig } from './config'
 
-const { boardWidth, boardHeight, ballSpeed, ballRadius } = config
+const { boardWidth, boardHeight, ballSpeed, ballDiameter } = getConfig()
 
-const halfBallWidth = ballRadius / 2
-const initX = boardWidth / 2 - halfBallWidth
-const initY = boardHeight / 2 - halfBallWidth
-const failLeftLine = -halfBallWidth
-const failRightLine = boardWidth + halfBallWidth
+const ballRadius = ballDiameter / 2
+const initX = boardWidth / 2
+const initY = boardHeight / 2
+const failLeftLine = -ballRadius
+const failRightLine = boardWidth + ballRadius
 
 type BallProps = {
   speed?: number
@@ -15,9 +15,12 @@ type BallProps = {
 }
 
 export class BallClass {
-  x: number = -ballRadius
-  y: number = -ballRadius
+  serve = true
+  x: number = -ballDiameter
+  y: number = -ballDiameter
   angle: number = 0
+  angleCos: number = 0
+  angleSin: number = 0
   vx: number = 0
   vy: number = 0
   speed: number = ballSpeed
@@ -27,12 +30,13 @@ export class BallClass {
     this.onFail = onFail
     this.speed = speed
 
-    this.respawn()
+    this.respawn(true)
   }
 
-  respawn = () => {
+  respawn = (center: boolean = false) => {
+    this.serve = true
     this.x = initX
-    this.y = initY
+    this.y = center ? initY : Math.random() * boardHeight
     const initAngle =
       ((Math.random() - 0.5) / 1.5) * Math.PI + (Math.sign(Math.random() - 0.5) > 0 ? Math.PI : 0)
     this.setAngle(initAngle)
@@ -40,20 +44,22 @@ export class BallClass {
 
   setAngle = (angle: number) => {
     this.angle = angle
-    this.vx = this.speed * Math.cos(angle)
-    this.vy = this.speed * Math.sin(angle)
+    this.angleCos = Math.cos(angle)
+    this.angleSin = Math.sin(angle)
+    this.vx = (this.serve ? this.speed / 2 : this.speed) * this.angleCos
+    this.vy = (this.serve ? this.speed / 2 : this.speed) * this.angleSin
   }
 
   update = () => {
     // y
-    if (this.y - halfBallWidth <= 0 || this.y + halfBallWidth >= boardHeight) {
-      this.vy = -this.vy
+    if (this.y - ballRadius <= 0 || this.y + ballRadius >= boardHeight) {
+      this.setAngle(-this.angle)
     }
 
     this.y = this.y + this.vy
 
-    // if (this.y < 0) this.y = 0
-    // if (this.y + ballRadius > boardHeight) this.y = boardHeight - ballRadius
+    if (this.y - ballRadius < 0) this.y = ballRadius
+    if (this.y + ballRadius > boardHeight) this.y = boardHeight - ballRadius
 
     // x
     this.x = this.x + this.vx
@@ -69,12 +75,20 @@ export class BallClass {
   }
 
   shouldBounced = (player: PlayerClass) => {
-    if (!(player.yTop <= this.y + halfBallWidth && player.yBottom >= this.y - halfBallWidth)) return
+    if (!(player.yTop <= this.y + ballRadius && player.yBottom >= this.y - ballRadius)) return
 
+    let shouldBounce = false
     if (player.side === 'left') {
-      return this.x - halfBallWidth <= player.xEdge && !(this.x < player.xFail)
+      shouldBounce = this.x - ballRadius <= player.xEdge && !(this.x < player.xFail)
     } else {
-      return this.x + halfBallWidth >= player.xEdge && !(this.x + halfBallWidth > player.xFail)
+      shouldBounce = this.x + ballRadius >= player.xEdge && !(this.x > player.xFail)
     }
+
+    if (shouldBounce) {
+      this.serve = false
+      this.x = player.xEdge + (player.side === 'left' ? ballRadius : -ballRadius)
+    }
+
+    return shouldBounce
   }
 }

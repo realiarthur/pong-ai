@@ -2,41 +2,50 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BallClass = void 0;
 var config_1 = require("./config");
-var boardWidth = config_1.config.boardWidth, boardHeight = config_1.config.boardHeight, ballSpeed = config_1.config.ballSpeed, ballRadius = config_1.config.ballRadius;
-var halfBallWidth = ballRadius / 2;
-var initX = boardWidth / 2 - halfBallWidth;
-var initY = boardHeight / 2 - halfBallWidth;
-var failLeftLine = -halfBallWidth;
-var failRightLine = boardWidth + halfBallWidth;
+var _a = (0, config_1.getConfig)(), boardWidth = _a.boardWidth, boardHeight = _a.boardHeight, ballSpeed = _a.ballSpeed, ballDiameter = _a.ballDiameter;
+var ballRadius = ballDiameter / 2;
+var initX = boardWidth / 2;
+var initY = boardHeight / 2;
+var failLeftLine = -ballRadius;
+var failRightLine = boardWidth + ballRadius;
 var BallClass = /** @class */ (function () {
     function BallClass(_a) {
         var onFail = _a.onFail, _b = _a.speed, speed = _b === void 0 ? ballSpeed : _b;
         var _this = this;
-        this.x = -ballRadius;
-        this.y = -ballRadius;
+        this.serve = true;
+        this.x = -ballDiameter;
+        this.y = -ballDiameter;
         this.angle = 0;
+        this.angleCos = 0;
+        this.angleSin = 0;
         this.vx = 0;
         this.vy = 0;
         this.speed = ballSpeed;
-        this.respawn = function () {
+        this.respawn = function (center) {
+            if (center === void 0) { center = false; }
+            _this.serve = true;
             _this.x = initX;
-            _this.y = initY;
+            _this.y = center ? initY : Math.random() * boardHeight;
             var initAngle = ((Math.random() - 0.5) / 1.5) * Math.PI + (Math.sign(Math.random() - 0.5) > 0 ? Math.PI : 0);
             _this.setAngle(initAngle);
         };
         this.setAngle = function (angle) {
             _this.angle = angle;
-            _this.vx = _this.speed * Math.cos(angle);
-            _this.vy = _this.speed * Math.sin(angle);
+            _this.angleCos = Math.cos(angle);
+            _this.angleSin = Math.sin(angle);
+            _this.vx = (_this.serve ? _this.speed / 2 : _this.speed) * _this.angleCos;
+            _this.vy = (_this.serve ? _this.speed / 2 : _this.speed) * _this.angleSin;
         };
         this.update = function () {
             // y
-            if (_this.y - halfBallWidth <= 0 || _this.y + halfBallWidth >= boardHeight) {
-                _this.vy = -_this.vy;
+            if (_this.y - ballRadius <= 0 || _this.y + ballRadius >= boardHeight) {
+                _this.setAngle(-_this.angle);
             }
             _this.y = _this.y + _this.vy;
-            // if (this.y < 0) this.y = 0
-            // if (this.y + ballRadius > boardHeight) this.y = boardHeight - ballRadius
+            if (_this.y - ballRadius < 0)
+                _this.y = ballRadius;
+            if (_this.y + ballRadius > boardHeight)
+                _this.y = boardHeight - ballRadius;
             // x
             _this.x = _this.x + _this.vx;
             if (_this.x <= failLeftLine) {
@@ -49,18 +58,24 @@ var BallClass = /** @class */ (function () {
             }
         };
         this.shouldBounced = function (player) {
-            if (!(player.yTop <= _this.y + halfBallWidth && player.yBottom >= _this.y - halfBallWidth))
+            if (!(player.yTop <= _this.y + ballRadius && player.yBottom >= _this.y - ballRadius))
                 return;
+            var shouldBounce = false;
             if (player.side === 'left') {
-                return _this.x - halfBallWidth <= player.xEdge && !(_this.x < player.xFail);
+                shouldBounce = _this.x - ballRadius <= player.xEdge && !(_this.x < player.xFail);
             }
             else {
-                return _this.x + halfBallWidth >= player.xEdge && !(_this.x + halfBallWidth > player.xFail);
+                shouldBounce = _this.x + ballRadius >= player.xEdge && !(_this.x > player.xFail);
             }
+            if (shouldBounce) {
+                _this.serve = false;
+                _this.x = player.xEdge + (player.side === 'left' ? ballRadius : -ballRadius);
+            }
+            return shouldBounce;
         };
         this.onFail = onFail;
         this.speed = speed;
-        this.respawn();
+        this.respawn(true);
     }
     return BallClass;
 }());

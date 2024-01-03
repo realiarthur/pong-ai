@@ -1,10 +1,10 @@
 import { BallClass } from './BallClass';
-import { Weights } from './Intelligence';
-import { Controller, PlayerClass } from './PlayerClass';
+import { PlayerClass } from './PlayerClass';
 export declare class GameSet {
+    uid: string;
     ball: BallClass;
-    players: [PlayerClass, PlayerClass];
-    constructor(leftController?: Controller, rightController?: Controller, dna?: Weights);
+    players: readonly [PlayerClass, PlayerClass];
+    constructor(players: readonly [PlayerClass, PlayerClass], ball: BallClass);
     getPlayerIntersectAngle(keeper: PlayerClass): number;
     tick: () => void;
 }

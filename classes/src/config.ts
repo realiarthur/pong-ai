@@ -1,15 +1,31 @@
-export const config = {
-  boardWidth: 689,
-  boardHeight: 451,
-  boardPadding: 37,
+let config = {
+  KEYBOARD_REPEAT_TIMEOUT: 10,
 
-  ballRadius: 15,
-  paddleWidth: 15,
+  boardWidth: 629,
+  boardHeight: 391,
+  boardPadding: 40,
+
+  ballDiameter: 15,
+  paddleWidth: 10,
   paddleHeight: 75,
-  ballSpeed: 5,
-  playerSpeed: 5,
-  maxBounceAngle: Math.PI / 3,
+  maxBounceAngle: Math.PI / 3.5,
+
+  playerSpeed: 6,
+  ballSpeed: 9,
 
   population: 50,
-  mutationDelta: 0.2,
+  moveStimulation: 0,
+  bounceStimulation: 500,
+  failStimulation: -3000,
+  maxMutation: 0.2,
+  maxThreshold: 0.05,
+  maxBias: 0.2,
+}
+
+export const getConfig = () => config
+export const setConfig = (values: Partial<typeof config>) => {
+  config = {
+    ...config,
+    ...values,
+  }
 }

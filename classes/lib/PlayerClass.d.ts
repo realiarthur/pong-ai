@@ -1,13 +1,14 @@
-import { Intelligence, Weights } from './Intelligence';
+import { Intelligence } from './Intelligence';
 export type Side = 'left' | 'right';
 export type Vector2 = [number, number];
 export type Direction = -1 | 1 | 0;
-export type Controller = 'keyboard' | 'mouse' | 'ai';
+export type Controller = 'keys' | 'mouse' | 'ai' | 'wall';
+export type StimulateTypes = 'bounce' | 'move' | 'fail';
 export type PlayerClassProps = {
     side: Side;
-    y?: number;
-    controller: Controller;
-    dna?: Weights;
+    controller?: Controller;
+    height?: number;
+    brain?: Intelligence;
 };
 export declare class PlayerClass {
     side: Side;
@@ -17,8 +18,12 @@ export declare class PlayerClass {
     yBottom: number;
     controller: Controller;
     brain?: Intelligence;
+    score: number;
     stimulation: number;
-    constructor({ side, y, controller, dna, }: PlayerClassProps);
+    height: number;
+    constructor({ side, height, controller, brain }: PlayerClassProps);
     updatePosition: (direction: Direction) => void;
-    stimulate: (x: number) => void;
+    stimulate: (type: StimulateTypes) => void;
+    addScore: () => void;
+    reset: () => void;
 }
