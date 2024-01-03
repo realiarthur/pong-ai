@@ -1,46 +1,45 @@
-# Getting Started with Create React App
+# Pong AI
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+- смещение -+
+- порог на выходной с мутацией
+- функция активации на все нейроны --
+- плату за перемещение, причем за попытку - тоже. Это позволит не выходить вперед линивцам, которые уперлись в край ?(двойную за push)
 
-## Available Scripts
+может сделать большую популяцию с самого начала?
 
-In the project directory, you can run:
+сбрасываение!
 
-### `npm start`
+- ai - ai + выбор контроллера
+  Автогенерация поколений - почкование
+- передавать данные оппонента чтобы хитрее играл
+- скрещивание на 2?
+  Считать на вилеокарте
+  Оставить только рендер одного сета?
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Подготовка
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+Трениировать наборами
+Будет забавно скрещивать 2х лучших игроков с разных сторон, если будет нужно
 
-### `npm test`
+на нейроны подавать значение по Х относительно стороны
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Следование за направлением
 
-### `npm run build`
+Сначала все веса были положительными и модель быстро начинала следовать только за направлением, что было лучше чем ничего, но давало ошибки
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Сопротивление, но дрожание - добавление ступенчатой функции активации для выходного нейрона (потому что по сути бинарный выход)
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Смещения и функция активации на выходной нейрон
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+есть стремеление наверх (после двух попыток) - хочется исправить
 
-### `npm run eject`
+Кроме того, входы не нормализованны по влиянию, например ballY должен быть и отрицательным относительно середины
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Со смещениями тренировать становится сложнее, популяции должны быть больше
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+проблемы со сбрасываением
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## 2 "скриншота"
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+приходил друг + кажется может решить проблемы со сбрасываением
+Решил сделать это перед большим отбором

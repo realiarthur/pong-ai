@@ -2,8 +2,9 @@
   background: var(--c-main);
   position: absolute;
   border-radius: 99px;
-  width: var(--d-ball-radius);
-  height: var(--d-ball-radius);
-  margin-left: calc(var(--d-ball-radius) / -2);
-  margin-top: calc(var(--d-ball-radius) / -2);
+  width: var(--d-ball-diameter);
+  height: var(--d-ball-diameter);
+  margin-left: calc(var(--d-ball-diameter) / -2);
+  margin-top: calc(var(--d-ball-diameter) / -2);
+  will-change: transform;
 }

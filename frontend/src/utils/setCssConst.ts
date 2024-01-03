@@ -1,13 +1,15 @@
-import { config } from 'classes'
+import { getConfig } from 'classes'
+
+const { ballDiameter, boardWidth, boardHeight, boardPadding, paddleHeight, paddleWidth } =
+  getConfig()
 
 export const setCssConst = (): void => {
   const root = document.documentElement
 
-  root.style.setProperty('--d-ball-radius', `${config.ballRadius}px`)
-  root.style.setProperty('--d-board-width', `${config.boardWidth}px`)
-  root.style.setProperty('--d-board-height', `${config.boardHeight}px`)
-  root.style.setProperty('--d-board-padding', `${config.boardPadding}px`)
-  root.style.setProperty('--d-paddle-height', `${config.paddleHeight}px`)
-  root.style.setProperty('--d-paddle-height', `${config.paddleHeight}px`)
-  root.style.setProperty('--d-paddle-width', `${config.paddleWidth}px`)
+  root.style.setProperty('--d-ball-diameter', `${ballDiameter}px`)
+  root.style.setProperty('--d-board-width', `${boardWidth}px`)
+  root.style.setProperty('--d-board-height', `${boardHeight}px`)
+  root.style.setProperty('--d-board-padding', `${boardPadding}px`)
+  root.style.setProperty('--d-paddle-height', `${paddleHeight}px`)
+  root.style.setProperty('--d-paddle-width', `${paddleWidth}px`)
 }

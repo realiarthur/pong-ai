@@ -7,21 +7,34 @@ import s from './Board.module.css'
 
 type BoardProps = {
   sets: GameSet[]
+  leaderSet?: GameSet
   leader?: PlayerClass
 }
 
-const Board: FC<BoardProps> = ({ sets, leader }) => {
+const Board: FC<BoardProps> = ({ sets, leader, leaderSet }) => {
   return (
     <div className={s.board}>
-      {/* TODOC key */}
-      {sets.map(({ players, ball }, index) => (
-        <div key={index} className={cx(s.gameSet, { [s.leader]: players[1] === leader })}>
-          {players.map((player, index) => (
-            <Player key={index} player={player} />
-          ))}
-          <Ball key={index} ball={ball} />
-        </div>
-      ))}
+      {sets.map(set => {
+        const { players, ball, uid } = set
+        const hasLeader = set === leaderSet
+        return (
+          <div
+            key={uid}
+            className={cx(s.gameSet, {
+              [s.leaderBoard]: hasLeader,
+            })}
+          >
+            {players.map((player, index) => (
+              <Player
+                key={index}
+                player={player}
+                className={cx({ [s.leader]: player === leader })}
+              />
+            ))}
+            <Ball ball={ball} className={cx({ [s.leader]: hasLeader })} />
+          </div>
+        )
+      })}
     </div>
   )
 }

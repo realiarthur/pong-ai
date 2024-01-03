@@ -1,9 +1,9 @@
 import { FC, useLayoutEffect, useRef } from 'react'
-import { BallClass, config } from 'classes'
+import { BallClass } from 'classes'
 import cx from 'classnames'
 import s from './Ball.module.css'
 
-const Ball: FC<{ ball: BallClass }> = ({ ball: { x, y } }) => {
+const Ball: FC<{ ball: BallClass; className?: string }> = ({ ball: { x, y }, className }) => {
   const ball = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => {
@@ -12,7 +12,7 @@ const Ball: FC<{ ball: BallClass }> = ({ ball: { x, y } }) => {
     ball.current.style.transform = `translate(${x}px, ${y}px)`
   }, [x, y])
 
-  return <div className={cx(s.ball)} ref={ball}></div>
+  return <div className={cx(s.ball, className)} ref={ball}></div>
 }
 
 export default Ball

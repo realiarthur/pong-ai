@@ -4,8 +4,13 @@
   height: var(--d-paddle-height);
   background: var(--c-main);
   border-radius: 99px;
+  will-change: transform;
 
   &.left {
     margin-left: calc(0px - var(--d-paddle-width));
+  }
+
+  &.wall {
+    height: var(--d-board-height);
   }
 }

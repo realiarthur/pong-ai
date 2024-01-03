@@ -3,6 +3,7 @@
   width: var(--d-board-width);
   height: var(--d-board-height);
   overflow: hidden;
+  flex-shrink: 0;
 
   &:before {
     content: '';
@@ -18,15 +19,17 @@
 }
 
 .gameSet {
-  opacity: 0.1;
+  opacity: 0.05;
   position: absolute;
   left: 0;
   top: 0;
 }
 
-.leader {
-  opacity: 1;
+.leaderBoard {
   z-index: 1;
+  opacity: 1;
 
-  --c-main: #dcb439;
+  .leader {
+    --c-main: var(--c-gold);
+  }
 }

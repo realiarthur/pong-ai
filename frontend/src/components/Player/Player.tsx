@@ -1,12 +1,13 @@
-import { FC, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { config, PlayerClass } from 'classes'
+import { FC, useEffect, useLayoutEffect, useRef } from 'react'
+import { getConfig, PlayerClass } from 'classes'
 import cx from 'classnames'
 import s from './Player.module.css'
 
-const CONTROLLER_TIMEOUT = 10
+const { KEYBOARD_REPEAT_TIMEOUT } = getConfig()
 
-const Player: FC<{ player: PlayerClass }> = ({
+const Player: FC<{ player: PlayerClass; className?: string }> = ({
   player: { side, xEdge, yTop, controller, updatePosition },
+  className,
 }) => {
   const player = useRef<HTMLDivElement>(null)
 
@@ -17,7 +18,7 @@ const Player: FC<{ player: PlayerClass }> = ({
   }, [xEdge, yTop])
 
   useEffect(() => {
-    if (controller !== 'keyboard') return
+    if (controller !== 'keys') return
     const keyboardController = () => {
       let timer: NodeJS.Timeout | null = null
       return [
@@ -27,10 +28,10 @@ const Player: FC<{ player: PlayerClass }> = ({
           const upKey = side === 'left' ? 'KeyW' : 'ArrowUp'
           const downKey = side === 'left' ? 'KeyS' : 'ArrowDown'
           if (code === upKey) {
-            timer = setInterval(() => updatePosition(-1), CONTROLLER_TIMEOUT)
+            timer = setInterval(() => updatePosition(-1), KEYBOARD_REPEAT_TIMEOUT)
           }
           if (code === downKey) {
-            timer = setInterval(() => updatePosition(1), CONTROLLER_TIMEOUT)
+            timer = setInterval(() => updatePosition(1), KEYBOARD_REPEAT_TIMEOUT)
           }
         },
         () => {
@@ -52,7 +53,7 @@ const Player: FC<{ player: PlayerClass }> = ({
     }
   }, [controller])
 
-  return <div className={cx(s.player, s[side])} ref={player}></div>
+  return <div className={cx(s.player, s[side], s[controller], className)} ref={player}></div>
 }
 
 export default Player

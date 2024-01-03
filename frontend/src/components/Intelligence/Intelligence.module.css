@@ -1,0 +1,28 @@
+.intelligence {
+  display: flex;
+
+  .neuron {
+    fill: var(--c-muted);
+    text-anchor: middle;
+    font-size: 12px;
+  }
+
+  .title {
+    fill: var(--c-muted);
+  }
+
+  .signal {
+    stroke: var(--c-main);
+    stroke-width: 2;
+  }
+
+  .positive {
+    fill: var(--c-green);
+    stroke: var(--c-green);
+  }
+
+  .negative {
+    fill: var(--c-red);
+    stroke: var(--c-red);
+  }
+}
