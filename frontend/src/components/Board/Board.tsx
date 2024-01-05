@@ -28,7 +28,10 @@ const Board: FC<BoardProps> = ({ sets, leader, leaderSet }) => {
               <Player
                 key={index}
                 player={player}
-                className={cx({ [s.leader]: player === leader })}
+                className={cx({
+                  [s.leaderEnemy]: hasLeader && player !== leader && player.controller !== 'wall',
+                  [s.leader]: player === leader,
+                })}
               />
             ))}
             <Ball ball={ball} className={cx({ [s.leader]: hasLeader })} />

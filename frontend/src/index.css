@@ -1,6 +1,6 @@
 :root {
-  --c-main: #888;
-  --c-muted: #666;
+  --c-main: #999;
+  --c-muted: #777;
   --c-active: #aaa;
   --c-gold: #dcb439;
   --c-red: #8d5353;
@@ -51,4 +51,12 @@ input {
   background: transparent;
   border: none;
   outline: none;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: var(--c-main);
 }

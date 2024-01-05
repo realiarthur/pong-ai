@@ -32,4 +32,9 @@
   .leader {
     --c-main: var(--c-gold);
   }
+
+  .leaderEnemy {
+    --c-main: var(--c-gold);
+    opacity: 0.5;
+  }
 }
