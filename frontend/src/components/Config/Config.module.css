@@ -28,6 +28,7 @@
     .title {
       color: var(--c-muted);
       margin-bottom: 2px;
+      margin-top: 8px;
     }
   }
 }

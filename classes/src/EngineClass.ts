@@ -70,7 +70,7 @@ export class EngineClass {
   update = () => {
     if (!this.sets.length) return []
 
-    const { divisionThreshold, fail } = this.config
+    const { divisionThreshold, fail, deathThreshold } = this.config
 
     const postponeLeaderAutoUpdate =
       this.hasKeys ||
@@ -136,11 +136,7 @@ export class EngineClass {
             }
           }
 
-          if (
-            !this.hasKeys &&
-            this.hasEnvAi &&
-            player.stimulation <= Math.max(-divisionThreshold, 3 * fail)
-          ) {
+          if (!this.hasKeys && this.hasEnvAi && player.stimulation <= deathThreshold) {
             this.killSet(player.brain.generation, set)
           }
         })
@@ -169,7 +165,7 @@ export class EngineClass {
     return visibleSets
   }
 
-  restartOldGenerations(notToRestartCount = 2) {
+  restartOldGenerations(notToRestartCount = 1) {
     const { divisionThreshold } = this.config
 
     if (this.sets.filter(Boolean).length > notToRestartCount) {
@@ -186,7 +182,7 @@ export class EngineClass {
         generation.forEach(set => {
           set.players.forEach(player => {
             if (player.stimulation > divisionThreshold) {
-              player.reset()
+              player.stimulation = divisionThreshold
             } else if (player.stimulation < 0) {
               this.killSet(player.brain?.generation, set)
             }

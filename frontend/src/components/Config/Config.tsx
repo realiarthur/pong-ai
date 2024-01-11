@@ -4,7 +4,7 @@ import s from './Config.module.css'
 
 const initConfig = getConfig()
 
-export type EnvFields = Array<[string, keyof Config]>
+export type EnvFields = Array<[string, Array<keyof Config>] | ['_header', Array<string>]>
 
 const Environment: FC<{ fields: EnvFields }> = ({ fields }) => {
   const [valuesKey, setValuesKey] = useState(0)
@@ -26,32 +26,28 @@ const Environment: FC<{ fields: EnvFields }> = ({ fields }) => {
 
   return (
     <div className={s.config} key={valuesKey}>
-      <div className={s.configItem}>
-        <span className={s.name}></span>
-        <span className={s.title}>current</span>
-        <span className={s.title}>step</span>
-        <span className={s.title}>final</span>
-      </div>
-
-      {fields.map(([title, key]) => {
-        const isEnv = envConfig.includes(key as StimulateType)
-        tabIndex = tabIndex + (isEnv ? 3 : 1)
+      {fields.map(([title, keys], index) => {
         return (
-          <div key={key} className={s.configItem}>
-            <span className={s.name}>{title}</span>
-            <input name={key} defaultValue={values[key]} onBlur={onBlur} autoComplete='off' />
-            {envConfig.includes(key as StimulateType) && (
+          <div key={title + index} className={s.configItem}>
+            <span className={s.name}>{title === '_header' ? '' : title}</span>
+            {title === '_header' ? (
               <>
-                <input
-                  name={`${key}EnvStep`}
-                  defaultValue={values[`${key}EnvStep` as keyof Config]}
-                  onBlur={onBlur}
-                />
-                <input
-                  name={`${key}EnvFinal`}
-                  defaultValue={values[`${key}EnvFinal` as keyof Config]}
-                  onBlur={onBlur}
-                />
+                {keys.map((header, index) => (
+                  <span key={index} className={s.title}>
+                    {header}
+                  </span>
+                ))}
+              </>
+            ) : (
+              <>
+                {keys.map(key => (
+                  <input
+                    name={key}
+                    defaultValue={values[key as keyof Config]}
+                    onBlur={onBlur}
+                    autoComplete='off'
+                  />
+                ))}
               </>
             )}
           </div>

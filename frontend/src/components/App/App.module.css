@@ -96,6 +96,10 @@
     .controls {
       margin-top: 24px;
 
+      + .controls {
+        margin-top: 0;
+      }
+
       .unwatch {
         color: var(--c-gold);
 

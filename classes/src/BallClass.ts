@@ -1,7 +1,7 @@
 import { PlayerClass, Side } from './PlayerClass'
 import { getConfig, subscribe } from './config'
 
-const { boardWidth, boardHeight, ballDiameter } = getConfig()
+const { boardWidth, boardHeight, ballDiameter, ballSpeed: initSpeed } = getConfig()
 
 const ballRadius = ballDiameter / 2
 const initX = boardWidth / 2
@@ -14,14 +14,15 @@ type BallProps = {
   onFail: (side: Side) => void
 }
 
+const getVxAbs = (speed: number) => speed / Math.sqrt(2)
+
 export class BallClass {
   serve = true
   x: number = -ballDiameter
   y: number = -ballDiameter
   angle: number = 0
-  angleCos: number = 0
-  angleSin: number = 0
   vx: number = 0
+  xvAbs: number = getVxAbs(initSpeed)
   vy: number = 0
   speed: number = getConfig().ballSpeed
   onFail: (side: Side) => void
@@ -34,6 +35,7 @@ export class BallClass {
 
     this.unsubscriber = subscribe(config => {
       this.speed = config.ballSpeed
+      this.xvAbs = getVxAbs(config.ballSpeed)
     })
   }
 
@@ -52,10 +54,12 @@ export class BallClass {
 
   setAngle = (angle: number) => {
     this.angle = angle
-    this.angleCos = Math.cos(angle)
-    this.angleSin = Math.sin(angle)
-    this.vx = (this.serve ? this.speed / 2.5 : this.speed) * this.angleCos
-    this.vy = (this.serve ? this.speed / 2.5 : this.speed) * this.angleSin
+    const cos = Math.cos(angle)
+    const xDirection = cos / Math.abs(cos)
+    const vx = xDirection * this.xvAbs
+    this.vx = this.serve ? vx / 2 : vx
+    const vy = this.speed * Math.sin(angle)
+    this.vy = this.serve ? vy / 2.5 : vy
   }
 
   update = () => {
