@@ -14,12 +14,12 @@
     background-size: 30px;
     background-position: -1px 0;
     background-repeat: repeat;
-    opacity: 0.15;
+    opacity: var(--o-board-bg-opacity);
   }
 }
 
 .gameSet {
-  opacity: 0.05;
+  opacity: var(--o-board-opacity);
   position: absolute;
   left: 0;
   top: 0;
@@ -30,11 +30,11 @@
   opacity: 1;
 
   .leader {
-    --c-main: var(--c-gold);
+    background: var(--c-gold);
   }
 
   .leaderEnemy {
-    --c-main: var(--c-gold);
+    background: var(--c-gold);
     opacity: 0.5;
   }
 }

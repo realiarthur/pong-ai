@@ -1,0 +1,57 @@
+.siblingsMonitor {
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .subtitle {
+    margin-bottom: 12px;
+  }
+
+  .item {
+    width: 100%;
+    display: flex;
+    position: relative;
+    border-radius: 2px;
+    overflow: hidden;
+    cursor: pointer;
+
+    &.watched {
+      border-right: 4px var(--c-gold) solid;
+
+      p {
+        padding-right: 4px;
+      }
+    }
+
+    p {
+      width: 100%;
+      color: var(--c-active);
+      white-space: nowrap;
+      padding-left: 8px;
+      padding-right: 8px;
+      margin: 0;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .monitorItemCountLine {
+      position: absolute;
+      left: 0;
+      top: 0;
+      min-height: 100%;
+      background: var(--c-green);
+      z-index: -1;
+      min-width: 4px;
+      opacity: 0.5;
+    }
+
+    &.total {
+      font-weight: bold;
+
+      .monitorItemCountLine {
+        background: var(--c-red);
+      }
+    }
+  }
+}

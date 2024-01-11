@@ -15,25 +15,29 @@ const Board: FC<BoardProps> = ({ sets, leader, leaderSet }) => {
   return (
     <div className={s.board}>
       {sets.map(set => {
-        const { players, ball, uid } = set
+        const { players, ball, key } = set
         const hasLeader = set === leaderSet
         return (
           <div
-            key={uid}
+            key={key}
             className={cx(s.gameSet, {
               [s.leaderBoard]: hasLeader,
             })}
           >
-            {players.map((player, index) => (
-              <Player
-                key={index}
-                player={player}
-                className={cx({
-                  [s.leaderEnemy]: hasLeader && player !== leader && player.controller !== 'wall',
-                  [s.leader]: player === leader,
-                })}
-              />
-            ))}
+            {players.map((player, index) => {
+              if (player.controller !== 'ai' && index > 0) return
+
+              return (
+                <Player
+                  key={index}
+                  player={player}
+                  className={cx({
+                    [s.leaderEnemy]: hasLeader && player !== leader && player.controller !== 'env',
+                    [s.leader]: player === leader,
+                  })}
+                />
+              )
+            })}
             <Ball ball={ball} className={cx({ [s.leader]: hasLeader })} />
           </div>
         )

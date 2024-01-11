@@ -10,13 +10,24 @@
     display: flex;
     align-items: center;
     text-transform: lowercase;
-    gap: 50px;
     justify-content: space-between;
     width: 100%;
+    gap: 8px;
 
+    .name {
+      margin-right: 20px;
+      flex-grow: 1;
+    }
+
+    .title,
     input {
-      width: 50px;
-      text-align: right;
+      width: 55px;
+      text-align: center;
+    }
+
+    .title {
+      color: var(--c-muted);
+      margin-bottom: 2px;
     }
   }
 }

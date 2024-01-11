@@ -7,7 +7,7 @@ import { getNumberString } from 'utils/getNumberString'
 const NEURON_WIDTH = 35
 const NEURON_HEIGHT = 16
 const X_GAP = 16
-const Y_GAP = 100
+const Y_GAP = 60
 
 const getNeuronX = (neuronIndex: number, length: number) => {
   return (neuronIndex - (length - 1) / 2) * (NEURON_WIDTH + X_GAP)
@@ -118,7 +118,9 @@ const Intelligence: FC<{
       height={values.length * (NEURON_HEIGHT + Y_GAP) + 2 * NEURON_HEIGHT - Y_GAP}
     >
       <g style={{ transform: 'translateX(50%)' }}>
-        <Layer layerIndex={0} layer={headers} />
+        <g className={s.title}>
+          <Layer layerIndex={0} layer={headers} />
+        </g>
 
         <g style={{ transform: `translateY(${1.5 * NEURON_HEIGHT}px)` }}>
           {values.map((layer, layerIndex) => (

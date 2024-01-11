@@ -2,7 +2,7 @@
   display: flex;
 
   .neuron {
-    fill: var(--c-muted);
+    fill: var(--c-main);
     text-anchor: middle;
     font-size: 12px;
   }

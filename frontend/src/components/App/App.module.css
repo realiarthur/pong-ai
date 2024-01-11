@@ -6,6 +6,12 @@
   justify-content: center;
   flex-direction: column;
 
+  .theme {
+    position: absolute;
+    right: 50px;
+    top: 50px;
+  }
+
   .container {
     width: fit-content;
     display: flex;
@@ -46,28 +52,61 @@
       height: 40px;
       margin-bottom: 24px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
 
+      .controller {
+        width: 51px;
+        z-index: 1;
+
+        &:disabled {
+          opacity: 1;
+        }
+
+        &.right {
+          text-align: right;
+        }
+      }
+
       .score {
+        display: block;
         width: calc(2 * var(--d-board-padding) + var(--d-paddle-width));
         text-align: center;
         font-size: 32px;
         flex-shrink: 0;
         flex-grow: 0;
-        /* color: var(--c-gold); */
+
+        &.left {
+          margin-right: calc(24px - var(--d-board-padding));
+        }
+
+        &.right {
+          margin-left: calc(24px - var(--d-board-padding));
+        }
       }
 
       .controls {
-        flex-grow: 0;
+        flex-grow: 1;
       }
     }
   }
 
   .intelligence {
+    min-width: 300px;
+
+    .controls {
+      margin-top: 24px;
+
+      .unwatch {
+        color: var(--c-gold);
+
+        &:hover {
+          border-color: var(--c-gold);
+        }
+      }
+    }
+
     .subtitle {
       margin-bottom: 24px;
-
       .motivationScore {
         color: var(--c-gold);
       }
@@ -78,40 +117,9 @@
     }
   }
 
-  .generationMonitor {
-    margin: 16px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-
-    .subtitle {
-      margin-bottom: 12px;
-    }
-
-    .item {
-      width: 100%;
-      display: flex;
-      position: relative;
-
-      p {
-        width: 100%;
-        color: var(--c-main);
-        white-space: nowrap;
-        padding: 0 4px;
-        margin: 0;
-        display: flex;
-        justify-content: space-between;
-      }
-
-      .monitorItemCountLine {
-        position: absolute;
-        left: 0;
-        top: 0;
-        min-height: 100%;
-        background: var(--c-green);
-        z-index: -1;
-        border-radius: 2px;
-      }
+  .environment {
+    .controls {
+      margin-top: 24px;
     }
   }
 }
