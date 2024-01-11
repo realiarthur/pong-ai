@@ -1,6 +1,6 @@
-export { PlayerClass, Side } from './PlayerClass';
+export { PlayerClass, Side, StimulateType, stimulateTypes, Controller, controllers, } from './PlayerClass';
 export { BallClass } from './BallClass';
-export { EngineClass } from './EngineClass';
+export { EngineClass, envConfig } from './EngineClass';
 export { Intelligence, Weights, Layer } from './Intelligence';
 export { GameSet } from './GameSet';
-export { getConfig, setConfig } from './config';
+export { getConfig, setConfig, subscribe, Config } from './config';

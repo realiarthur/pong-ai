@@ -2,19 +2,21 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Intelligence = void 0;
 var config_1 = require("./config");
-var _a = (0, config_1.getConfig)(), maxMutation = _a.maxMutation, maxThreshold = _a.maxThreshold, maxBias = _a.maxBias;
+var _a = (0, config_1.getConfig)(), maxThreshold = _a.maxThreshold, maxBias = _a.maxBias;
 // inputs: [
 //  player.yTop,
-//  x distance to ball,
+//  |player.xEdge|
+//  ball.|x|',
+//  ball.|x|,
+//  ball.y',
 //  ball.y,
-//  ball.vx (negative if ball move to player),
-//  ball.vy,
 // ]
 // outputs: [up, down]
-var INPUT_COUNT = 5;
+var INPUT_COUNT = 6;
 var HIDDEN_COUNT = 6;
+var HIDDEN_COUNT2 = 3;
 var OUTPUT_COUNT = 1;
-var LAYERS_CONFIG = [INPUT_COUNT, HIDDEN_COUNT, OUTPUT_COUNT];
+var LAYERS_CONFIG = [INPUT_COUNT, HIDDEN_COUNT, HIDDEN_COUNT2, OUTPUT_COUNT];
 var thresholdActivation = function (x, threshold) {
     if (threshold === void 0) { threshold = 0; }
     var abs = Math.abs(x);
@@ -39,12 +41,13 @@ var weighedAverage = function (inputs, weights, outputIndex) {
 };
 var Intelligence = /** @class */ (function () {
     function Intelligence(_a) {
-        var _b = _a === void 0 ? {} : _a, generation = _b.generation, weights = _b.weights, threshold = _b.threshold, biases = _b.biases;
+        var _b = _a === void 0 ? {} : _a, generation = _b.generation, siblingIndex = _b.siblingIndex, weights = _b.weights, threshold = _b.threshold, biases = _b.biases;
         var _this = this;
         this.values = [];
         this.weights = [];
         this.biases = [];
-        this.mutate = function () {
+        this.mutate = function (siblingIndex) {
+            var maxMutation = (0, config_1.getConfig)().maxMutation;
             return new Intelligence({
                 generation: _this.generation + 1,
                 weights: Intelligence.mapWeights(function (layer, input, output) {
@@ -53,9 +56,10 @@ var Intelligence = /** @class */ (function () {
                 }),
                 biases: Intelligence.mapBiases(function (layer, neuron) {
                     var mutatedBias = _this.biases[layer][neuron] + signRandom(maxBias) * maxMutation;
-                    return limiter(mutatedBias, maxBias);
+                    return limiter(mutatedBias);
                 }),
-                threshold: limiter(_this.threshold + signRandom() * maxMutation * maxThreshold, maxThreshold),
+                threshold: limiter(_this.threshold + signRandom() * maxMutation * maxThreshold),
+                siblingIndex: siblingIndex,
             });
         };
         this.calculate = function (inputs, calculatedLayerIndex) {
@@ -71,26 +75,29 @@ var Intelligence = /** @class */ (function () {
             for (var outputIndex = 0; outputIndex < outputsCount; outputIndex++) {
                 var value = weighedAverage(inputs, weights, outputIndex);
                 var biasedValue = limiter(value + biases[outputIndex]);
-                var activation = isOutputLayer
-                    ? function (x) { return thresholdActivation(x, _this.threshold); }
-                    : function (x) { return x; };
+                // const activation: ActivationFn = isOutputLayer
+                //   ? x => thresholdActivation(x, this.threshold)
+                //   : x => x
+                var activation = function (x) { return thresholdActivation(x, _this.threshold); };
                 outputs.push(activation(biasedValue));
             }
             _this.values[calculatedLayerIndex] = outputs;
             return isOutputLayer ? outputs : _this.calculate(outputs, calculatedLayerIndex + 1);
         };
         this.serialize = function () {
-            var _a = _this, generation = _a.generation, weights = _a.weights, threshold = _a.threshold, biases = _a.biases;
+            var _a = _this, generation = _a.generation, siblingIndex = _a.siblingIndex, weights = _a.weights, threshold = _a.threshold, biases = _a.biases;
             return JSON.stringify({
                 generation: generation,
+                siblingIndex: siblingIndex,
                 weights: weights,
                 threshold: threshold,
                 biases: biases,
             });
         };
         this.generation = generation !== null && generation !== void 0 ? generation : 1;
+        this.siblingIndex = siblingIndex || 0;
         this.weights = weights !== null && weights !== void 0 ? weights : Intelligence.mapWeights(function () { return signRandom(); });
-        this.biases = biases !== null && biases !== void 0 ? biases : Intelligence.mapBiases(function () { return signRandom(maxBias); });
+        this.biases = biases !== null && biases !== void 0 ? biases : Intelligence.mapBiases(function () { return 0; });
         this.threshold = threshold !== null && threshold !== void 0 ? threshold : thresholdRandom();
     }
     // TODOC use mapLayer

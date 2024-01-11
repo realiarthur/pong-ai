@@ -1,29 +1,55 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PlayerClass = void 0;
+exports.PlayerClass = exports.stimulateTypes = exports.controllers = void 0;
 var config_1 = require("./config");
 var _a = (0, config_1.getConfig)(), paddleWidth = _a.paddleWidth, paddleHeight = _a.paddleHeight, boardWidth = _a.boardWidth, boardHeight = _a.boardHeight, playerSpeed = _a.playerSpeed, boardPadding = _a.boardPadding;
+var freeMovementsQuantity = boardHeight - paddleHeight;
+exports.controllers = ['env', 'ai', 'keys'];
+exports.stimulateTypes = ['bounce', 'move', 'fail'];
 var PlayerClass = /** @class */ (function () {
     function PlayerClass(_a) {
         var side = _a.side, _b = _a.height, height = _b === void 0 ? paddleHeight : _b, _c = _a.controller, controller = _c === void 0 ? 'keys' : _c, brain = _a.brain;
         var _this = this;
+        this.height = paddleHeight;
         this.score = 0;
         this.stimulation = 0;
-        this.height = paddleHeight;
+        this.movementsSinceBounce = 0;
+        this.dead = false;
+        this.previousMove = -1 | 1;
+        this.kill = function () {
+            _this.dead = true;
+        };
         this.updatePosition = function (direction) {
-            if (direction === 0)
+            if (direction === 0) {
+                _this.previousMove = 0;
                 return;
-            _this.stimulate('move');
+            }
             if ((_this.yTop <= 0 && direction < 0) || (_this.yBottom >= boardHeight && direction > 0))
                 return;
+            _this.movementsSinceBounce = _this.movementsSinceBounce + playerSpeed;
+            if (_this.movementsSinceBounce > freeMovementsQuantity) {
+                _this.stimulate('move');
+            }
+            if (_this.previousMove !== direction) {
+                _this.stimulate('move');
+                _this.previousMove = direction;
+            }
             _this.yTop = Math.max(0, Math.min(boardHeight - _this.height, _this.yTop + direction * playerSpeed));
             _this.yBottom = _this.yTop + _this.height;
         };
-        this.stimulate = function (type) {
+        this.stimulate = function (typeOrValue, multi) {
+            if (multi === void 0) { multi = 1; }
             if (_this.controller !== 'ai')
                 return;
+            if (typeof typeOrValue === 'number') {
+                _this.stimulation = _this.stimulation + typeOrValue;
+                return;
+            }
             var config = (0, config_1.getConfig)();
-            _this.stimulation = _this.stimulation + config["".concat(type, "Stimulation")];
+            _this.stimulation = _this.stimulation + config[typeOrValue] * multi;
+            if (typeOrValue === 'bounce') {
+                _this.movementsSinceBounce = 0;
+            }
         };
         this.addScore = function () {
             _this.score = _this.score + 1;
@@ -37,8 +63,8 @@ var PlayerClass = /** @class */ (function () {
         this.side = side;
         this.xEdge =
             side === 'left' ? paddleWidth + boardPadding : boardWidth - paddleWidth - boardPadding;
-        this.xFail = side === 'left' ? this.xEdge - paddleWidth : this.xEdge + paddleWidth;
-        this.height = controller === 'wall' ? boardHeight : height;
+        this.xFail = side === 'left' ? this.xEdge - paddleWidth / 2 : this.xEdge + paddleWidth / 2;
+        this.height = controller === 'env' ? boardHeight : height;
         this.yTop = boardHeight / 2 - this.height / 2;
         this.yBottom = this.yTop + this.height;
         this.controller = controller;

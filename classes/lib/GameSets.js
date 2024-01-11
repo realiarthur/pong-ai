@@ -20,7 +20,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EngineClass = exports.envConfig = void 0;
+exports.EngineClass = void 0;
 var BallClass_1 = require("./BallClass");
 var GameSet_1 = require("./GameSet");
 var Generation_1 = require("./Generation");
@@ -28,9 +28,7 @@ var Intelligence_1 = require("./Intelligence");
 var PlayerClass_1 = require("./PlayerClass");
 var config_1 = require("./config");
 var LOCAL_STORAGE_LEADER = 'leader';
-var LEADER_AUTO_UPDATE_TIMEOUT = 7500;
 var VISIBLE_SETS_COUNT = (0, config_1.getConfig)().VISIBLE_SETS_COUNT;
-exports.envConfig = __spreadArray(__spreadArray([], PlayerClass_1.stimulateTypes, true), ['ballSpeed', 'maxMutation', 'wallMinAngle'], false);
 var forEachRight = function (array, callback) {
     for (var index = array.length - 1; index >= 0; index--) {
         var element = array[index];
@@ -43,18 +41,16 @@ var EngineClass = /** @class */ (function () {
         var _this = this;
         this.sets = [];
         this.setsCount = 0;
-        this.population = 0;
         this.lookingForLeader = false;
         this.leftController = 'keys';
         this.rightController = 'ai';
         this.generationsStat = [];
+        this.population = 0;
         this.config = initConfig;
         this.hasAi = false;
         this.hasOnlyAi = false;
         this.hasEnv = false;
         this.hasEnvAi = false;
-        this.hasKeys = false;
-        this.lastLeaderAutoUpdate = 0;
         this.destroy = function () {
             _this.unsubscriber();
         };
@@ -67,28 +63,21 @@ var EngineClass = /** @class */ (function () {
             _this.hasOnlyAi = _this.leftController === 'ai' && _this.rightController === 'ai';
             _this.hasEnv = _this.leftController === 'env' || _this.rightController === 'env';
             _this.hasEnvAi = _this.hasAi && _this.hasEnv;
-            _this.hasKeys = _this.leftController === 'keys' || _this.rightController === 'keys';
-            _this.clearSets();
+            _this.sets = [];
         };
         this.update = function () {
-            var _a, _b, _c, _d;
+            var _a, _b, _c;
             if (!_this.sets.length)
-                return [];
-            var _e = _this.config, divisionThreshold = _e.divisionThreshold, fail = _e.fail;
-            var postponeLeaderAutoUpdate = _this.hasKeys ||
-                (!_this.hasOnlyAi &&
-                    _this.leader &&
-                    !_this.leader.set.dead &&
-                    Date.now() - _this.lastLeaderAutoUpdate < LEADER_AUTO_UPDATE_TIMEOUT);
-            _this.leader = (_a = _this.watchIndividual) !== null && _a !== void 0 ? _a : (postponeLeaderAutoUpdate ? _this.leader : undefined);
-            if ((_b = _this.watchIndividual) === null || _b === void 0 ? void 0 : _b.set.dead) {
+                return { sets: [], length: 0 };
+            var _d = _this.config, divisionThreshold = _d.divisionThreshold, divisionScore = _d.divisionScore, population = _d.population, populationIncreaseMulti = _d.populationIncreaseMulti, fail = _d.fail;
+            _this.leader = _this.watchIndividual;
+            if ((_a = _this.watchIndividual) === null || _a === void 0 ? void 0 : _a.set.dead) {
                 _this.watchIndividual = undefined;
             }
-            if (_this.watchGeneration && !((_c = _this.generationsStat[_this.watchGeneration]) === null || _c === void 0 ? void 0 : _c.count)) {
-                _this.setWatchGeneration(false);
+            if (_this.watchGeneration && !((_b = _this.generationsStat[_this.watchGeneration]) === null || _b === void 0 ? void 0 : _b.count)) {
+                _this.watchGeneration = _this.getLastGenerationWithCount();
             }
-            var divisionCandidate = false;
-            var currentWatchGeneration = (_d = _this.watchGeneration) !== null && _d !== void 0 ? _d : _this.getLastGenerationWithCount();
+            var currentWatchGeneration = (_c = _this.watchGeneration) !== null && _c !== void 0 ? _c : _this.getLastGenerationWithCount();
             // right to let last generation has children faster
             forEachRight(_this.sets, function (generation) {
                 if (!generation)
@@ -96,10 +85,10 @@ var EngineClass = /** @class */ (function () {
                 generation.forEach(function (set) {
                     set.tick();
                     set.players.forEach(function (player, playerIndex) {
-                        var _a, _b, _c, _d, _e;
+                        var _a, _b, _c, _d;
                         if (!player.brain)
                             return;
-                        if (!_this.watchIndividual && !postponeLeaderAutoUpdate) {
+                        if (!_this.watchIndividual) {
                             var isWatchedGeneration = !currentWatchGeneration || player.brain.generation === currentWatchGeneration;
                             var isAiGameLeader = _this.hasOnlyAi &&
                                 playerIndex === 1 &&
@@ -107,38 +96,53 @@ var EngineClass = /** @class */ (function () {
                             var isEnvGameLeader = _this.hasEnvAi &&
                                 player.stimulation > ((_d = (_c = _this.leader) === null || _c === void 0 ? void 0 : _c.player.stimulation) !== null && _d !== void 0 ? _d : -divisionThreshold);
                             if (isWatchedGeneration && (isAiGameLeader || isEnvGameLeader)) {
-                                _this.lastLeaderAutoUpdate = Date.now();
                                 _this.leader = {
                                     set: set,
                                     player: player,
-                                    playerIndex: playerIndex,
                                 };
                             }
                         }
-                        if (player.stimulation >= divisionThreshold &&
-                            (!divisionCandidate ||
-                                (player.brain.generation === ((_e = divisionCandidate.player.brain) === null || _e === void 0 ? void 0 : _e.generation) &&
-                                    player.stimulation > divisionCandidate.player.stimulation))) {
-                            divisionCandidate = {
-                                set: set,
-                                player: player,
-                                playerIndex: playerIndex,
-                            };
+                        var maxPopulation = _this.hasOnlyAi ? population / 2 : population;
+                        var envGameDivision = _this.hasEnvAi && divisionThreshold && player.stimulation >= divisionThreshold;
+                        var aiAiGameDivision = _this.hasOnlyAi && player.score >= divisionScore;
+                        if ((envGameDivision || aiAiGameDivision) &&
+                            _this.setsCount <= maxPopulation * (1 - populationIncreaseMulti)) {
+                            if (_this.hasOnlyAi) {
+                                if (playerIndex === 1) {
+                                    _this.createSet(player.brain);
+                                }
+                                _this.killSet(player.brain.generation, set);
+                                return;
+                            }
+                            if (!player.brain)
+                                return;
+                            player.stimulation = 0;
+                            player.score = 0;
+                            var maxGeneration = _this.generationsStat.length - 1 || 1;
+                            _this.createSets(player.brain);
+                            if (player.brain.generation === maxGeneration) {
+                                console.log('complication for new generation:', player.brain.generation + 1);
+                                (0, config_1.setConfig)(function (config) {
+                                    return PlayerClass_1.stimulateTypes.reduce(function (result, type) {
+                                        var _a;
+                                        var value = config[type];
+                                        var step = config["".concat(type, "EnvStep")];
+                                        var final = config["".concat(type, "EnvFinal")];
+                                        var hasReachedFinal = value === final || step === 0 || (step > 0 ? value > final : value < final);
+                                        if (hasReachedFinal) {
+                                            return result;
+                                        }
+                                        return __assign(__assign({}, result), (_a = {}, _a[type] = value + step, _a));
+                                    }, {});
+                                });
+                            }
                         }
-                        if (!_this.hasKeys &&
-                            _this.hasEnvAi &&
-                            player.stimulation <= Math.max(-divisionThreshold, 3 * fail)) {
+                        if (_this.hasEnvAi && player.stimulation <= Math.max(-divisionThreshold, 3 * fail)) {
                             _this.killSet(player.brain.generation, set);
                         }
                     });
                 });
             });
-            if (divisionCandidate) {
-                var hasBeenDivided = _this.dividePlayer(divisionCandidate);
-                if (!hasBeenDivided) {
-                    _this.restartOldGenerations();
-                }
-            }
             var visibleSets = [];
             for (var index = 0; index < _this.sets.length; index++) {
                 var generation = _this.sets[index];
@@ -150,7 +154,7 @@ var EngineClass = /** @class */ (function () {
                     break;
                 }
             }
-            return visibleSets;
+            return { sets: visibleSets, length: _this.setsCount };
         };
         this.createGeneration = function (number) {
             var generation = new Generation_1.Generation(number);
@@ -180,16 +184,16 @@ var EngineClass = /** @class */ (function () {
             if (count === void 0) { count = _this.config.population * _this.config.populationIncreaseMulti; }
             for (var index = 0; index < count; index++) {
                 var set = _this.createSet(parent);
-                if (((_a = set.players[1].brain) === null || _a === void 0 ? void 0 : _a.generation) === undefined)
+                if (!((_a = set.players[1].brain) === null || _a === void 0 ? void 0 : _a.generation))
                     return;
                 if (!_this.sets[(_b = set.players[1].brain) === null || _b === void 0 ? void 0 : _b.generation]) {
                     _this.sets[(_c = set.players[1].brain) === null || _c === void 0 ? void 0 : _c.generation] = [];
                 }
-                _this.sets[(_d = set.players[1].brain) === null || _d === void 0 ? void 0 : _d.generation].push(set);
+                _this.sets[(_d = set.players[1].brain) === null || _d === void 0 ? void 0 : _d.generation].push(_this.createSet(parent));
             }
         };
         this.createSet = function (parent, mutate) {
-            var _a, _b, _c, _d;
+            var _a, _b, _c, _d, _e, _f;
             if (mutate === void 0) { mutate = true; }
             var createAi = function () {
                 if (parent && !mutate) {
@@ -198,12 +202,12 @@ var EngineClass = /** @class */ (function () {
                 return _this.createGenerationSibling(parent);
             };
             var players = [
-                new PlayerClass_1.PlayerClass({
+                (_a = _this.commonLeftPlayer) !== null && _a !== void 0 ? _a : new PlayerClass_1.PlayerClass({
                     side: 'left',
                     controller: _this.leftController,
                     brain: _this.hasOnlyAi ? parent : _this.leftController === 'ai' ? createAi() : undefined,
                 }),
-                new PlayerClass_1.PlayerClass({
+                (_b = _this.commonRightPlayer) !== null && _b !== void 0 ? _b : new PlayerClass_1.PlayerClass({
                     side: 'right',
                     controller: _this.rightController,
                     brain: _this.hasOnlyAi
@@ -215,10 +219,10 @@ var EngineClass = /** @class */ (function () {
             ];
             var key = "".concat(_this.leftController, " - ").concat(_this.rightController);
             if (_this.leftController === 'ai') {
-                key = "".concat((_a = players[0].brain) === null || _a === void 0 ? void 0 : _a.generation, ".").concat((_b = players[0].brain) === null || _b === void 0 ? void 0 : _b.siblingIndex);
+                key = "".concat((_c = players[0].brain) === null || _c === void 0 ? void 0 : _c.generation, ".").concat((_d = players[0].brain) === null || _d === void 0 ? void 0 : _d.siblingIndex);
             }
             else if (_this.rightController === 'ai') {
-                key = "".concat((_c = players[1].brain) === null || _c === void 0 ? void 0 : _c.generation, ".").concat((_d = players[1].brain) === null || _d === void 0 ? void 0 : _d.siblingIndex);
+                key = "".concat((_e = players[1].brain) === null || _e === void 0 ? void 0 : _e.generation, ".").concat((_f = players[1].brain) === null || _f === void 0 ? void 0 : _f.siblingIndex);
             }
             var ball = new BallClass_1.BallClass({
                 onFail: function (side) {
@@ -249,7 +253,6 @@ var EngineClass = /** @class */ (function () {
                 player.kill();
                 (_a = _this.generationsStat[player.brain.generation]) === null || _a === void 0 ? void 0 : _a.decrease();
             });
-            _this.sets[generation][index].ball.destroy();
             _this.sets[generation].splice(index, 1);
         };
         this.clearSets = function () {
@@ -268,11 +271,9 @@ var EngineClass = /** @class */ (function () {
                 var generation = _this.createGeneration(generationNumber);
                 generation.count = 1;
                 generation.lastSiblingIndex = leader.siblingIndex || 0;
-                var index = _this.leftController === 'ai' ? 0 : 1;
                 _this.watchIndividual = {
                     set: set,
-                    player: set.players[index],
-                    playerIndex: index,
+                    player: _this.leftController === 'ai' ? set.players[0] : set.players[1],
                 };
                 _this.watchGeneration = leader.generation;
             }
@@ -304,83 +305,10 @@ var EngineClass = /** @class */ (function () {
                 _this.watchGeneration = (_b = _this.leader.player.brain) === null || _b === void 0 ? void 0 : _b.generation;
             }
         };
-        this.setWatchGeneration = function (number) {
-            _this.lastLeaderAutoUpdate = 0;
-            _this.watchIndividual = undefined;
-            _this.watchGeneration = number === _this.getLastGenerationWithCount() ? undefined : number;
-        };
         this.unsubscriber = (0, config_1.subscribe)(function (config) {
             _this.config = config;
         });
     }
-    EngineClass.prototype.restartOldGenerations = function (notToRestartCount) {
-        var _this = this;
-        if (notToRestartCount === void 0) { notToRestartCount = 2; }
-        var divisionThreshold = this.config.divisionThreshold;
-        if (this.sets.filter(Boolean).length > notToRestartCount) {
-            var passedCount_1 = 0;
-            forEachRight(this.sets, function (generation) {
-                if (!generation)
-                    return;
-                if (passedCount_1 < notToRestartCount) {
-                    passedCount_1 = passedCount_1 + 1;
-                    return;
-                }
-                generation.forEach(function (set) {
-                    set.players.forEach(function (player) {
-                        var _a;
-                        if (player.stimulation > divisionThreshold) {
-                            player.reset();
-                        }
-                        else if (player.stimulation < 0) {
-                            _this.killSet((_a = player.brain) === null || _a === void 0 ? void 0 : _a.generation, set);
-                        }
-                    });
-                });
-            });
-        }
-    };
-    EngineClass.prototype.dividePlayer = function (leader) {
-        var player = leader.player, set = leader.set, playerIndex = leader.playerIndex;
-        if (!player.brain)
-            return false;
-        var _a = this.config, divisionThreshold = _a.divisionThreshold, divisionScore = _a.divisionScore, population = _a.population, populationIncreaseMulti = _a.populationIncreaseMulti;
-        var maxPopulation = this.hasOnlyAi ? population / 2 : population;
-        var envGameDivision = this.hasEnvAi && divisionThreshold && player.stimulation >= divisionThreshold;
-        var aiAiGameDivision = this.hasOnlyAi && player.score >= divisionScore;
-        if (!((envGameDivision || aiAiGameDivision) &&
-            this.population <= maxPopulation * (1 - populationIncreaseMulti)))
-            return false;
-        if (this.hasOnlyAi) {
-            this.killSet(player.brain.generation, set);
-            if (playerIndex === 1) {
-                this.createSet(player.brain);
-                return true;
-            }
-            return false;
-        }
-        player.stimulation = 0;
-        player.score = 0;
-        var maxGeneration = this.generationsStat.length - 1 || 1;
-        this.createSets(player.brain);
-        if (player.brain.generation === maxGeneration) {
-            console.log('complication for new generation:', player.brain.generation + 1);
-            (0, config_1.setConfig)(function (config) {
-                return exports.envConfig.reduce(function (result, type) {
-                    var _a;
-                    var value = config[type];
-                    var step = config["".concat(type, "EnvStep")];
-                    var final = config["".concat(type, "EnvFinal")];
-                    var hasReachedFinal = value === final || step === 0 || (step > 0 ? value > final : value < final);
-                    if (hasReachedFinal) {
-                        return result;
-                    }
-                    return __assign(__assign({}, result), (_a = {}, _a[type] = Math.round((value + step) * 1000) / 1000, _a));
-                }, {});
-            });
-        }
-        return true;
-    };
     return EngineClass;
 }());
 exports.EngineClass = EngineClass;

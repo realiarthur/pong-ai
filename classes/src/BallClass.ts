@@ -1,7 +1,7 @@
 import { PlayerClass, Side } from './PlayerClass'
-import { getConfig } from './config'
+import { getConfig, subscribe } from './config'
 
-const { boardWidth, boardHeight, ballSpeed, ballDiameter } = getConfig()
+const { boardWidth, boardHeight, ballDiameter } = getConfig()
 
 const ballRadius = ballDiameter / 2
 const initX = boardWidth / 2
@@ -23,14 +23,22 @@ export class BallClass {
   angleSin: number = 0
   vx: number = 0
   vy: number = 0
-  speed: number = ballSpeed
+  speed: number = getConfig().ballSpeed
   onFail: (side: Side) => void
+  unsubscriber: () => void
 
-  constructor({ onFail, speed = ballSpeed }: BallProps) {
+  constructor({ onFail }: BallProps) {
     this.onFail = onFail
-    this.speed = speed
 
     this.respawn(true)
+
+    this.unsubscriber = subscribe(config => {
+      this.speed = config.ballSpeed
+    })
+  }
+
+  destroy = () => {
+    this.unsubscriber()
   }
 
   respawn = (center: boolean = false) => {
@@ -46,8 +54,8 @@ export class BallClass {
     this.angle = angle
     this.angleCos = Math.cos(angle)
     this.angleSin = Math.sin(angle)
-    this.vx = (this.serve ? this.speed / 2 : this.speed) * this.angleCos
-    this.vy = (this.serve ? this.speed / 2 : this.speed) * this.angleSin
+    this.vx = (this.serve ? this.speed / 2.5 : this.speed) * this.angleCos
+    this.vy = (this.serve ? this.speed / 2.5 : this.speed) * this.angleSin
   }
 
   update = () => {
@@ -74,14 +82,18 @@ export class BallClass {
     }
   }
 
-  shouldBounced = (player: PlayerClass) => {
+  shouldBounced = (player: PlayerClass, prevX: number) => {
     if (!(player.yTop <= this.y + ballRadius && player.yBottom >= this.y - ballRadius)) return
 
     let shouldBounce = false
     if (player.side === 'left') {
-      shouldBounce = this.x - ballRadius <= player.xEdge && !(this.x < player.xFail)
+      shouldBounce =
+        this.x - ballRadius <= player.xEdge &&
+        (!(this.x < player.xFail) || prevX - ballRadius > player.xEdge)
     } else {
-      shouldBounce = this.x + ballRadius >= player.xEdge && !(this.x > player.xFail)
+      shouldBounce =
+        this.x + ballRadius >= player.xEdge &&
+        (!(this.x > player.xFail) || prevX + ballRadius < player.xEdge)
     }
 
     if (shouldBounce) {

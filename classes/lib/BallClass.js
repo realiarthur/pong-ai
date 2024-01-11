@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BallClass = void 0;
 var config_1 = require("./config");
-var _a = (0, config_1.getConfig)(), boardWidth = _a.boardWidth, boardHeight = _a.boardHeight, ballSpeed = _a.ballSpeed, ballDiameter = _a.ballDiameter;
+var _a = (0, config_1.getConfig)(), boardWidth = _a.boardWidth, boardHeight = _a.boardHeight, ballDiameter = _a.ballDiameter;
 var ballRadius = ballDiameter / 2;
 var initX = boardWidth / 2;
 var initY = boardHeight / 2;
@@ -10,7 +10,7 @@ var failLeftLine = -ballRadius;
 var failRightLine = boardWidth + ballRadius;
 var BallClass = /** @class */ (function () {
     function BallClass(_a) {
-        var onFail = _a.onFail, _b = _a.speed, speed = _b === void 0 ? ballSpeed : _b;
+        var onFail = _a.onFail;
         var _this = this;
         this.serve = true;
         this.x = -ballDiameter;
@@ -20,7 +20,10 @@ var BallClass = /** @class */ (function () {
         this.angleSin = 0;
         this.vx = 0;
         this.vy = 0;
-        this.speed = ballSpeed;
+        this.speed = (0, config_1.getConfig)().ballSpeed;
+        this.destroy = function () {
+            _this.unsubscriber();
+        };
         this.respawn = function (center) {
             if (center === void 0) { center = false; }
             _this.serve = true;
@@ -33,8 +36,8 @@ var BallClass = /** @class */ (function () {
             _this.angle = angle;
             _this.angleCos = Math.cos(angle);
             _this.angleSin = Math.sin(angle);
-            _this.vx = (_this.serve ? _this.speed / 2 : _this.speed) * _this.angleCos;
-            _this.vy = (_this.serve ? _this.speed / 2 : _this.speed) * _this.angleSin;
+            _this.vx = (_this.serve ? _this.speed / 2.5 : _this.speed) * _this.angleCos;
+            _this.vy = (_this.serve ? _this.speed / 2.5 : _this.speed) * _this.angleSin;
         };
         this.update = function () {
             // y
@@ -57,15 +60,19 @@ var BallClass = /** @class */ (function () {
                 _this.respawn();
             }
         };
-        this.shouldBounced = function (player) {
+        this.shouldBounced = function (player, prevX) {
             if (!(player.yTop <= _this.y + ballRadius && player.yBottom >= _this.y - ballRadius))
                 return;
             var shouldBounce = false;
             if (player.side === 'left') {
-                shouldBounce = _this.x - ballRadius <= player.xEdge && !(_this.x < player.xFail);
+                shouldBounce =
+                    _this.x - ballRadius <= player.xEdge &&
+                        (!(_this.x < player.xFail) || prevX - ballRadius > player.xEdge);
             }
             else {
-                shouldBounce = _this.x + ballRadius >= player.xEdge && !(_this.x > player.xFail);
+                shouldBounce =
+                    _this.x + ballRadius >= player.xEdge &&
+                        (!(_this.x > player.xFail) || prevX + ballRadius < player.xEdge);
             }
             if (shouldBounce) {
                 _this.serve = false;
@@ -74,8 +81,10 @@ var BallClass = /** @class */ (function () {
             return shouldBounce;
         };
         this.onFail = onFail;
-        this.speed = speed;
         this.respawn(true);
+        this.unsubscriber = (0, config_1.subscribe)(function (config) {
+            _this.speed = config.ballSpeed;
+        });
     }
     return BallClass;
 }());

@@ -2,21 +2,21 @@ import { GameSet } from './GameSet';
 import { Generation } from './Generation';
 import { Intelligence } from './Intelligence';
 import { Controller, PlayerClass } from './PlayerClass';
-export declare const envConfig: readonly ["bounce", "move", "fail", "ballSpeed", "maxMutation", "wallMinAngle"];
 type Leader = {
     set: GameSet;
     player: PlayerClass;
-    playerIndex: number;
 };
 export declare class EngineClass {
     sets: GameSet[][];
     setsCount: number;
-    population: number;
     lookingForLeader: boolean;
     leader?: Leader;
     leftController: Controller;
     rightController: Controller;
+    commonLeftPlayer?: PlayerClass;
+    commonRightPlayer?: PlayerClass;
     generationsStat: Array<Generation | undefined>;
+    population: number;
     config: {
         VISIBLE_SETS_COUNT: number;
         KEYBOARD_REPEAT_TIMEOUT: number;
@@ -29,14 +29,6 @@ export declare class EngineClass {
         maxBounceAngle: number;
         playerSpeed: number;
         ballSpeed: number;
-        ballSpeedEnvStep: number;
-        ballSpeedEnvFinal: number;
-        maxMutation: number;
-        maxMutationEnvStep: number;
-        maxMutationEnvFinal: number;
-        wallMinAngle: number;
-        wallMinAngleEnvStep: number;
-        wallMinAngleEnvFinal: number;
         move: number;
         moveEnvStep: number;
         moveEnvFinal: number;
@@ -47,8 +39,10 @@ export declare class EngineClass {
         failEnvStep: number;
         failEnvFinal: number;
         population: number;
+        maxMutation: number;
         divisionThreshold: number;
         divisionScore: number;
+        wallMinAngle: number;
         maxThreshold: number;
         maxBias: number;
         populationIncreaseMulti: number;
@@ -58,16 +52,15 @@ export declare class EngineClass {
     hasOnlyAi: boolean;
     hasEnv: boolean;
     hasEnvAi: boolean;
-    hasKeys: boolean;
     watchIndividual?: Leader;
     watchGeneration?: number | false;
-    lastLeaderAutoUpdate: number;
     constructor();
     destroy: () => void;
     setControllers: (leftController?: Controller, rightController?: Controller) => void;
-    update: () => GameSet[];
-    restartOldGenerations(notToRestartCount?: number): void;
-    dividePlayer(leader: Leader): boolean;
+    update: () => {
+        sets: GameSet[];
+        length: number;
+    };
     createGeneration: (number: number) => Generation;
     getLastGenerationWithCount: () => number;
     createGenerationSibling: (parent?: Intelligence) => Intelligence;
@@ -79,6 +72,5 @@ export declare class EngineClass {
     saveLeader: () => void;
     restart: () => void;
     watchLeaderToggle: () => void;
-    setWatchGeneration: (number: number | false) => void;
 }
 export {};

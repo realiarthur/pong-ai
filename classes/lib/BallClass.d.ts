@@ -14,10 +14,12 @@ export declare class BallClass {
     vy: number;
     speed: number;
     onFail: (side: Side) => void;
-    constructor({ onFail, speed }: BallProps);
+    unsubscriber: () => void;
+    constructor({ onFail }: BallProps);
+    destroy: () => void;
     respawn: (center?: boolean) => void;
     setAngle: (angle: number) => void;
     update: () => void;
-    shouldBounced: (player: PlayerClass) => boolean | undefined;
+    shouldBounced: (player: PlayerClass, prevX: number) => boolean | undefined;
 }
 export {};
