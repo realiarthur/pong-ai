@@ -9,32 +9,33 @@ let config = {
   ballDiameter: 15,
   paddleWidth: 10,
   paddleHeight: 75,
-  maxBounceAngle: Math.PI / 4,
+  maxBounceAngle: Math.PI / 4.5,
 
   playerSpeed: 6,
 
-  ballSpeed: 9,
-  ballSpeedEnvStep: 0.2,
-  ballSpeedEnvFinal: 13,
+  ballSpeed: 12,
+  ballSpeedEnvStep: 1,
+  ballSpeedEnvFinal: 15,
   maxMutation: 0.1,
   maxMutationEnvStep: -0.003,
   maxMutationEnvFinal: 0.01,
-  wallMinAngle: 25,
-  wallMinAngleEnvStep: -1,
-  wallMinAngleEnvFinal: 0,
+  wallMinAngle: 10,
+  wallMinAngleEnvStep: 2,
+  wallMinAngleEnvFinal: 30,
 
   move: 0,
-  moveEnvStep: -2,
+  moveEnvStep: 0,
   moveEnvFinal: -40,
-  bounce: 1200,
+  bounce: 500,
   bounceEnvStep: -50,
   bounceEnvFinal: 300,
-  fail: -2000,
-  failEnvStep: -500,
-  failEnvFinal: -10000,
+  fail: -1000,
+  failEnvStep: -1000,
+  failEnvFinal: -15000,
 
   population: 5000,
   divisionThreshold: 10000,
+  deathThreshold: -10000,
   divisionScore: 10,
 
   maxThreshold: 0.2,
@@ -46,7 +47,7 @@ export type Config = typeof config
 
 export const getConfig = () => config
 
-type Updater = 'ui' | 'env'
+type Updater = 'ui' | 'env' | 'init'
 export function setConfig(values: Partial<Config>, updater?: Updater): void
 export function setConfig(fn: (prevValues: Config) => Partial<Config>, updater?: Updater): void
 export function setConfig(
@@ -67,6 +68,7 @@ type Callback = (config: Config, updater: Updater) => void
 let subscribers: Callback[] = []
 export const subscribe = (callback: Callback) => {
   subscribers.push(callback)
+  callback(config, 'init')
   return () => {
     subscribers = subscribers.filter(item => item !== callback)
   }

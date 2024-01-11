@@ -12,9 +12,9 @@ const { maxThreshold, maxBias } = getConfig()
 // outputs: [up, down]
 const INPUT_COUNT = 6
 const HIDDEN_COUNT = 6
-const HIDDEN_COUNT2 = 3
+const HIDDEN_COUNT2 = 4
 const OUTPUT_COUNT = 1
-const LAYERS_CONFIG = [INPUT_COUNT, HIDDEN_COUNT, HIDDEN_COUNT2, OUTPUT_COUNT]
+const LAYERS_CONFIG = [INPUT_COUNT, HIDDEN_COUNT2, OUTPUT_COUNT]
 
 type BiValue = 0 | 1 | -1
 export type Layer<T = number, TLength = void> = TLength extends number
@@ -56,14 +56,14 @@ export class Intelligence {
   siblingIndex: number
   weights: number[][][] = []
   biases: Layer[] = []
-  threshold: number
+  // threshold: number
 
   constructor({ generation, siblingIndex, weights, threshold, biases }: IntelligenceProps = {}) {
     this.generation = generation ?? 1
     this.siblingIndex = siblingIndex || 0
     this.weights = weights ?? Intelligence.mapWeights(() => signRandom())
-    this.biases = biases ?? Intelligence.mapBiases(() => 0)
-    this.threshold = threshold ?? thresholdRandom()
+    // this.biases = biases ?? Intelligence.mapBiases(() => 0)
+    // this.threshold = threshold ?? thresholdRandom()
   }
 
   mutate = (siblingIndex: number) => {
@@ -74,11 +74,11 @@ export class Intelligence {
         const mutatedWeight = this.weights[layer][input][output] + signRandom() * maxMutation
         return limiter(mutatedWeight)
       }),
-      biases: Intelligence.mapBiases((layer, neuron) => {
-        const mutatedBias = this.biases[layer][neuron] + signRandom(maxBias) * maxMutation
-        return limiter(mutatedBias)
-      }),
-      threshold: limiter(this.threshold + signRandom() * maxMutation * maxThreshold),
+      // biases: Intelligence.mapBiases((layer, neuron) => {
+      //   const mutatedBias = this.biases[layer][neuron] + signRandom(maxBias) * maxMutation
+      //   return limiter(mutatedBias)
+      // }),
+      // threshold: limiter(this.threshold + signRandom() * maxMutation * maxThreshold),
       siblingIndex,
     })
   }
@@ -130,7 +130,7 @@ export class Intelligence {
 
   calculate = (inputs: Layer, calculatedLayerIndex = 1): Layer => {
     const weights = this.weights[calculatedLayerIndex - 1]
-    const biases = this.biases[calculatedLayerIndex]
+    // const biases = this.biases[calculatedLayerIndex]
     const outputsCount = LAYERS_CONFIG[calculatedLayerIndex]
     const isOutputLayer = calculatedLayerIndex === LAYERS_CONFIG.length - 1
 
@@ -141,13 +141,11 @@ export class Intelligence {
     const outputs: Layer = []
     for (let outputIndex = 0; outputIndex < outputsCount; outputIndex++) {
       const value = weighedAverage(inputs, weights, outputIndex)
-      const biasedValue = limiter(value + biases[outputIndex])
-      // const activation: ActivationFn = isOutputLayer
-      //   ? x => thresholdActivation(x, this.threshold)
-      //   : x => x
+      // const biasedValue = limiter(value + biases[outputIndex])
+      const activation: ActivationFn = isOutputLayer ? x => thresholdActivation(x, 0) : x => x
 
-      const activation: ActivationFn = x => thresholdActivation(x, this.threshold)
-      outputs.push(activation(biasedValue))
+      // const activation: ActivationFn = x => thresholdActivation(x, this.threshold)
+      outputs.push(activation(value))
     }
 
     this.values[calculatedLayerIndex] = outputs
@@ -156,13 +154,18 @@ export class Intelligence {
   }
 
   serialize = () => {
-    const { generation, siblingIndex, weights, threshold, biases } = this
+    const {
+      generation,
+      siblingIndex,
+      weights,
+      // threshold, biases
+    } = this
     return JSON.stringify({
       generation,
       siblingIndex,
       weights,
-      threshold,
-      biases,
+      // threshold,
+      // biases,
     })
   }
 

@@ -82,32 +82,34 @@ const App = () => {
 
   const random = () => {
     clearSets()
-    createSets(undefined, maxPopulation * 3)
+    createSets(undefined, maxPopulation * 2)
   }
 
   if (leader && !sets.includes(leader?.set)) {
     sets.push(leader.set)
   }
 
-  const envFields: EnvFields | null = hasOnlyAi
-    ? [
-        ['max mutation', 'maxMutation'],
-        ['speed', 'ballSpeed'],
-        ['division score', 'divisionScore'],
-        ['population', 'population'],
-      ]
-    : hasEnvAi
-    ? [
-        ['bounce', 'bounce'],
-        ['fail', 'fail'],
-        ['move', 'move'],
-        ['speed', 'ballSpeed'],
-        ['mutation', 'maxMutation'],
-        ['wall min°', 'wallMinAngle'],
-        ['population', 'population'],
-        ['division / death', 'divisionThreshold'],
-      ]
-    : [['speed', 'ballSpeed']]
+  const envFields: EnvFields | null =
+    // hasOnlyAi
+    // ? [
+    //     ['max mutation', 'maxMutation'],
+    //     ['speed', 'ballSpeed'],
+    //     ['division score', 'divisionScore'],
+    //     ['population', 'population'],
+    //   ]
+    // : hasEnvAi
+    // ?
+    [
+      ['_header', ['current', 'step', 'final']],
+      ['bounce', ['bounce', 'bounceEnvStep', 'bounceEnvFinal']],
+      ['fail', ['fail', 'failEnvStep', 'failEnvFinal']],
+      ['speed', ['ballSpeed', 'ballSpeedEnvStep', 'ballSpeedEnvFinal']],
+      ['mutation', ['maxMutation', 'maxMutationEnvStep', 'maxMutationEnvFinal']],
+      ['wall min°', ['wallMinAngle', 'wallMinAngleEnvStep', 'wallMinAngleEnvFinal']],
+      ['_header', ['count', 'birth', 'death']],
+      ['population', ['population', 'divisionThreshold', 'deathThreshold']],
+    ]
+  // : [['speed', 'ballSpeed']]
 
   return (
     <div className={cx(s.app)}>
@@ -158,20 +160,24 @@ const App = () => {
             <div className={cx(s.row, s.gap50)}>
               {hasAi && (
                 <div className={s.intelligence}>
+                  <p className={s.title}>
+                    Gen.sib{' '}
+                    {leader?.set.players[1].brain && (
+                      <>
+                        #{leader?.player.brain?.generation}.{leader?.player.brain?.siblingIndex}
+                      </>
+                    )}
+                  </p>
+
                   {leader?.set.players[1].brain && (
                     <>
-                      <p className={s.title}>
-                        Gen.sib #{leader?.player.brain?.generation}.
-                        {leader?.player.brain?.siblingIndex}
-                      </p>
-
                       <div className={s.subtitle}>
                         {hasAi && !hasOnlyAi && (
                           <p className={s.motivationScore}>
                             stimulation: {Math.round(leader?.player.stimulation)}
                           </p>
                         )}
-                        <p>threshold: {getNumberString(leader?.player.brain?.threshold)}</p>
+                        {/* <p>threshold: {getNumberString(leader?.player.brain?.threshold)}</p> */}
                       </div>
 
                       <Intelligence intelligence={leader?.set.players[1].brain} headers={headers} />
@@ -179,8 +185,6 @@ const App = () => {
                   )}
 
                   <div className={s.controls}>
-                    <button onClick={loadLeader}>Load</button>
-                    <button onClick={saveLeader}>Save</button>
                     <button
                       onClick={watchLeaderToggle}
                       className={cx({ [s.unwatch]: watchIndividual })}
@@ -190,6 +194,11 @@ const App = () => {
                     <button onClick={() => killSet(leader?.player.brain?.generation, leader?.set)}>
                       Kill
                     </button>
+                    <button onClick={() => createSets(leader?.player.brain)}>Mutate</button>
+                  </div>
+                  <div className={s.controls}>
+                    <button onClick={loadLeader}>Load</button>
+                    <button onClick={saveLeader}>Save</button>
                   </div>
                 </div>
               )}
@@ -205,7 +214,6 @@ const App = () => {
                   <SiblingsMonitor engine={engine} />
                   <div className={s.controls}>
                     <button onClick={random}>Random</button>
-                    <button onClick={() => createSets(leader?.player.brain)}>Mutate</button>
                   </div>
                 </div>
               )}
