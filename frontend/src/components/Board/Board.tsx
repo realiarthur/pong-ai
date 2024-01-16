@@ -22,6 +22,7 @@ const Board: FC<BoardProps> = ({ sets, leader, leaderSet }) => {
             key={key}
             className={cx(s.gameSet, {
               [s.leaderBoard]: hasLeader,
+              [s.one]: sets.length === 1,
             })}
           >
             {players.map((player, index) => {

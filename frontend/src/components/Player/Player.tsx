@@ -25,14 +25,10 @@ const Player: FC<{ player: PlayerClass; className?: string }> = ({
         ({ code }: KeyboardEvent) => {
           if (timer) return
 
-          // const upKey = side === 'left' ? 'KeyW' : 'ArrowUp'
-          const upKey = 'ArrowUp'
-          // const downKey = side === 'left' ? 'KeyS' : 'ArrowDown'
-          const downKey = 'ArrowDown'
-          if (code === upKey) {
+          if (code === 'ArrowUp' || code === 'KeyW') {
             timer = setInterval(() => updatePosition(-1), KEYBOARD_REPEAT_TIMEOUT)
           }
-          if (code === downKey) {
+          if (code === 'ArrowDown' || code === 'KeyS') {
             timer = setInterval(() => updatePosition(1), KEYBOARD_REPEAT_TIMEOUT)
           }
         },

@@ -30,20 +30,23 @@ const {
   update,
   setControllers,
   watchLeaderToggle,
+  savedPlayers,
 } = engine
 
 setControllers('env', 'ai')
 
 const handleChangeController: (side: Side) => ChangeEventHandler<HTMLSelectElement> = side => e => {
-  const value = e.target.value as Controller
-  const leftController = side === 'left' ? value : engine.leftController
-  const rightController = side === 'right' ? value : engine.rightController
+  const key = e.target.value
+  const controller = !!savedPlayers[key] ? savedPlayers[key] : (key as Controller)
+
+  const leftController = side === 'left' ? controller : engine.leftController
+  const rightController = side === 'right' ? controller : engine.rightController
   setControllers(leftController, rightController)
 }
 
 // const headers = ['pY', '|ΔX|', 'bY', 'NbVx', 'bVy']
 // const headers = ['pY', "ΔX'", 'ΔX', "bY'", 'bY']
-const headers = ['pY', 'p|X|', "b|X|'", 'b|X|', "bY'", 'bY']
+const headers = ['p|X|', 'pY', 'b|X|', 'bY', "b|X|'", "bY'"]
 
 type EngineUpdates = ReturnType<EngineClass['update']>
 const updatesInit = engine.update()
@@ -82,7 +85,7 @@ const App = () => {
 
   const random = () => {
     clearSets()
-    createSets(undefined, maxPopulation * 2)
+    createSets(undefined, maxPopulation * 3)
   }
 
   if (leader && !sets.includes(leader?.set)) {
@@ -103,10 +106,11 @@ const App = () => {
       ['_header', ['current', 'step', 'final']],
       ['bounce', ['bounce', 'bounceEnvStep', 'bounceEnvFinal']],
       ['fail', ['fail', 'failEnvStep', 'failEnvFinal']],
+      ['move', ['move', 'moveEnvStep', 'moveEnvFinal']],
       ['speed', ['ballSpeed', 'ballSpeedEnvStep', 'ballSpeedEnvFinal']],
       ['mutation', ['maxMutation', 'maxMutationEnvStep', 'maxMutationEnvFinal']],
       ['wall min°', ['wallMinAngle', 'wallMinAngleEnvStep', 'wallMinAngleEnvFinal']],
-      ['_header', ['count', 'birth', 'death']],
+      ['_header', ['max', 'birth', 'death']],
       ['population', ['population', 'divisionThreshold', 'deathThreshold']],
     ]
   // : [['speed', 'ballSpeed']]
@@ -123,12 +127,21 @@ const App = () => {
               <span className={cx(s.score, s.left)}>{leader?.set.players[0].score ?? 0}</span>
               <select
                 className={s.controller}
-                value={engine.leftController}
+                value={
+                  typeof engine.leftController === 'string'
+                    ? engine.leftController
+                    : engine.leftController.getKey()
+                }
                 onChange={handleChangeController('left')}
               >
                 {controllers.map((controller, index) => (
                   <option key={index} value={controller}>
                     {controller}
+                  </option>
+                ))}
+                {Object.keys(savedPlayers).map(key => (
+                  <option key={key} value={key}>
+                    {key}
                   </option>
                 ))}
               </select>
@@ -140,13 +153,17 @@ const App = () => {
 
               <select
                 className={cx(s.controller, s.right)}
-                value={engine.rightController}
+                value={
+                  typeof engine.rightController === 'string'
+                    ? engine.rightController
+                    : engine.rightController.getKey()
+                }
                 onChange={handleChangeController('right')}
-                disabled
               >
-                {controllers.map((controller, index) => (
-                  <option key={index} value={controller}>
-                    {controller}
+                <option value={'ai'}>ai</option>
+                {Object.keys(savedPlayers).map(key => (
+                  <option key={key} value={key}>
+                    {key}
                   </option>
                 ))}
               </select>
@@ -177,7 +194,7 @@ const App = () => {
                             stimulation: {Math.round(leader?.player.stimulation)}
                           </p>
                         )}
-                        {/* <p>threshold: {getNumberString(leader?.player.brain?.threshold)}</p> */}
+                        <p>threshold: {getNumberString(leader?.player.brain?.threshold)}</p>
                       </div>
 
                       <Intelligence intelligence={leader?.set.players[1].brain} headers={headers} />
