@@ -11,10 +11,8 @@ const { maxThreshold, maxBias } = getConfig()
 // ]
 // outputs: [up, down]
 const INPUT_COUNT = 6
-const HIDDEN_COUNT = 6
-const HIDDEN_COUNT2 = 4
 const OUTPUT_COUNT = 1
-const LAYERS_CONFIG = [INPUT_COUNT, HIDDEN_COUNT2, OUTPUT_COUNT]
+const LAYERS_CONFIG = [INPUT_COUNT, 6, 4, OUTPUT_COUNT]
 
 type BiValue = 0 | 1 | -1
 export type Layer<T = number, TLength = void> = TLength extends number
@@ -26,6 +24,10 @@ export type ActivationFn = (x: number) => number
 const thresholdActivation = (x: number, threshold = 0): BiValue => {
   const abs = Math.abs(x)
   return abs > threshold ? ((x / abs) as -1 | 1) : 0
+}
+
+const tanhActivation = (x: number): number => {
+  return 2 / (1 + Math.pow(Math.E, -2 * x)) - 1
 }
 
 const limiter = (value: number, limit = 1) =>
@@ -56,14 +58,14 @@ export class Intelligence {
   siblingIndex: number
   weights: number[][][] = []
   biases: Layer[] = []
-  // threshold: number
+  threshold: number
 
   constructor({ generation, siblingIndex, weights, threshold, biases }: IntelligenceProps = {}) {
     this.generation = generation ?? 1
     this.siblingIndex = siblingIndex || 0
     this.weights = weights ?? Intelligence.mapWeights(() => signRandom())
-    // this.biases = biases ?? Intelligence.mapBiases(() => 0)
-    // this.threshold = threshold ?? thresholdRandom()
+    this.biases = biases ?? Intelligence.mapBiases(() => signRandom(maxBias))
+    this.threshold = threshold ?? thresholdRandom()
   }
 
   mutate = (siblingIndex: number) => {
@@ -74,11 +76,11 @@ export class Intelligence {
         const mutatedWeight = this.weights[layer][input][output] + signRandom() * maxMutation
         return limiter(mutatedWeight)
       }),
-      // biases: Intelligence.mapBiases((layer, neuron) => {
-      //   const mutatedBias = this.biases[layer][neuron] + signRandom(maxBias) * maxMutation
-      //   return limiter(mutatedBias)
-      // }),
-      // threshold: limiter(this.threshold + signRandom() * maxMutation * maxThreshold),
+      biases: Intelligence.mapBiases((layer, neuron) => {
+        const mutatedBias = this.biases[layer][neuron] + signRandom(maxBias) * maxMutation
+        return limiter(mutatedBias)
+      }),
+      threshold: limiter(this.threshold + signRandom() * maxMutation * maxThreshold),
       siblingIndex,
     })
   }
@@ -130,22 +132,26 @@ export class Intelligence {
 
   calculate = (inputs: Layer, calculatedLayerIndex = 1): Layer => {
     const weights = this.weights[calculatedLayerIndex - 1]
-    // const biases = this.biases[calculatedLayerIndex]
+    const biases = this.biases[calculatedLayerIndex]
     const outputsCount = LAYERS_CONFIG[calculatedLayerIndex]
     const isOutputLayer = calculatedLayerIndex === LAYERS_CONFIG.length - 1
 
     if (calculatedLayerIndex === 1) {
-      this.values[0] = inputs
+      const prevBallPosition = this.values[0] ? this.values[0].slice(2, 4) : inputs.slice(-2)
+      this.values[0] = [...inputs, ...prevBallPosition]
     }
 
     const outputs: Layer = []
     for (let outputIndex = 0; outputIndex < outputsCount; outputIndex++) {
-      const value = weighedAverage(inputs, weights, outputIndex)
-      // const biasedValue = limiter(value + biases[outputIndex])
-      const activation: ActivationFn = isOutputLayer ? x => thresholdActivation(x, 0) : x => x
+      const value = weighedSum(inputs, weights, outputIndex)
+      const biasedValue = value + biases[outputIndex]
+      // const activation: ActivationFn = isOutputLayer ? x => thresholdActivation(x, this.threshold) : x => x
+      const activation: ActivationFn = isOutputLayer
+        ? x => thresholdActivation(tanhActivation(x), this.threshold)
+        : x => tanhActivation(x)
 
       // const activation: ActivationFn = x => thresholdActivation(x, this.threshold)
-      outputs.push(activation(value))
+      outputs.push(activation(biasedValue))
     }
 
     this.values[calculatedLayerIndex] = outputs
@@ -154,18 +160,13 @@ export class Intelligence {
   }
 
   serialize = () => {
-    const {
-      generation,
-      siblingIndex,
-      weights,
-      // threshold, biases
-    } = this
+    const { generation, siblingIndex, weights, threshold, biases } = this
     return JSON.stringify({
       generation,
       siblingIndex,
       weights,
-      // threshold,
-      // biases,
+      threshold,
+      biases,
     })
   }
 
@@ -174,4 +175,6 @@ export class Intelligence {
     const values = JSON.parse(json) as IntelligenceProps
     return new Intelligence(values)
   }
+
+  getKey = () => `#${this.generation}.${this.siblingIndex}`
 }

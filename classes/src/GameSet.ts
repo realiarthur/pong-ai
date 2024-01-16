@@ -47,11 +47,9 @@ export class GameSet {
 
     if (left.brain) {
       const [direction] = left.brain.calculate([
-        left.yTop / playerMaxY,
         left.xEdge / boardWidth,
-        prevX / boardWidth,
+        left.yTop / playerMaxY,
         ball.x / boardWidth,
-        prevY / boardHeight,
         ball.y / boardHeight,
       ]) as [Direction]
 
@@ -60,11 +58,9 @@ export class GameSet {
 
     if (right.brain) {
       const [direction] = right.brain.calculate([
-        right.yTop / playerMaxY,
         (boardWidth - right.xEdge) / boardWidth,
-        (boardWidth - prevX) / boardWidth,
+        right.yTop / playerMaxY,
         (boardWidth - ball.x) / boardWidth,
-        prevY / boardHeight,
         ball.y / boardHeight,
       ]) as [Direction]
 

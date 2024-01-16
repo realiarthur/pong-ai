@@ -4,6 +4,7 @@ import { Generation } from './Generation'
 import { Intelligence } from './Intelligence'
 import { Controller, PlayerClass, stimulateTypes } from './PlayerClass'
 import { Config, getConfig, setConfig, subscribe } from './config'
+import { getSavedPlayers } from './utils/getSavedPlayers'
 
 const LOCAL_STORAGE_LEADER = 'leader'
 const LEADER_AUTO_UPDATE_TIMEOUT = 7500
@@ -29,10 +30,9 @@ export class EngineClass {
   sets: GameSet[][] = []
   setsCount: number = 0
   population = 0
-  lookingForLeader = false
   leader?: Leader
-  leftController: Controller = 'keys'
-  rightController: Controller = 'ai'
+  leftController: Controller | Intelligence = 'keys'
+  rightController: Controller | Intelligence = 'ai'
   generationsStat: Array<Generation | undefined> = []
   config = initConfig
   unsubscriber: () => void
@@ -44,6 +44,7 @@ export class EngineClass {
   watchIndividual?: Leader
   watchGeneration?: number | false
   lastLeaderAutoUpdate = 0
+  savedPlayers = getSavedPlayers()
 
   constructor() {
     this.unsubscriber = subscribe(config => {
@@ -55,22 +56,32 @@ export class EngineClass {
     this.unsubscriber()
   }
 
-  setControllers = (leftController: Controller = 'env', rightController: Controller = 'ai') => {
+  setControllers = (
+    leftController: Controller | Intelligence = 'env',
+    rightController: Controller | Intelligence = 'ai',
+  ) => {
     this.leftController = leftController
     this.rightController = rightController
-    this.hasAi = this.leftController === 'ai' || this.rightController === 'ai'
-    this.hasOnlyAi = this.leftController === 'ai' && this.rightController === 'ai'
+    this.hasAi =
+      this.leftController === 'ai' ||
+      this.leftController instanceof Intelligence ||
+      this.rightController === 'ai' ||
+      this.rightController instanceof Intelligence
+    this.hasOnlyAi =
+      (this.leftController === 'ai' || this.leftController instanceof Intelligence) &&
+      (this.rightController === 'ai' || this.rightController instanceof Intelligence)
     this.hasEnv = this.leftController === 'env' || this.rightController === 'env'
     this.hasEnvAi = this.hasAi && this.hasEnv
     this.hasKeys = this.leftController === 'keys' || this.rightController === 'keys'
 
     this.clearSets()
+    this.createSet()
   }
 
   update = () => {
     if (!this.sets.length) return []
 
-    const { divisionThreshold, fail, deathThreshold } = this.config
+    const { divisionThreshold, deathThreshold, fail } = this.config
 
     const postponeLeaderAutoUpdate =
       this.hasKeys ||
@@ -136,7 +147,11 @@ export class EngineClass {
             }
           }
 
-          if (!this.hasKeys && this.hasEnvAi && player.stimulation <= deathThreshold) {
+          if (
+            !this.hasKeys &&
+            this.hasEnvAi &&
+            player.stimulation <= Math.max(deathThreshold, 3 * fail)
+          ) {
             this.killSet(player.brain.generation, set)
           }
         })
@@ -287,14 +302,7 @@ export class EngineClass {
     count = this.config.population * this.config.populationIncreaseMulti,
   ) => {
     for (let index = 0; index < count; index++) {
-      const set = this.createSet(parent)
-      if (set.players[1].brain?.generation === undefined) return
-
-      if (!this.sets[set.players[1].brain?.generation]) {
-        this.sets[set.players[1].brain?.generation] = []
-      }
-
-      this.sets[set.players[1].brain?.generation].push(set)
+      this.createSet(parent)
     }
   }
 
@@ -310,26 +318,31 @@ export class EngineClass {
     const players = [
       new PlayerClass({
         side: 'left',
-        controller: this.leftController,
-        brain: this.hasOnlyAi ? parent : this.leftController === 'ai' ? createAi() : undefined,
+        controller: this.leftController instanceof Intelligence ? 'ai' : this.leftController,
+        brain:
+          this.leftController instanceof Intelligence
+            ? this.leftController
+            : this.hasOnlyAi
+            ? parent
+            : this.leftController === 'ai'
+            ? createAi()
+            : undefined,
       }),
       new PlayerClass({
         side: 'right',
-        controller: this.rightController,
-        brain: this.hasOnlyAi
-          ? this.createGenerationSibling(parent)
-          : this.rightController === 'ai'
-          ? createAi()
-          : undefined,
+        controller: this.rightController instanceof Intelligence ? 'ai' : this.rightController,
+        brain:
+          this.rightController instanceof Intelligence
+            ? this.rightController
+            : this.hasOnlyAi
+            ? this.createGenerationSibling(parent)
+            : this.rightController === 'ai'
+            ? createAi()
+            : undefined,
       }),
     ] as const
 
-    let key = `${this.leftController} - ${this.rightController}`
-    if (this.leftController === 'ai') {
-      key = `${players[0].brain?.generation}.${players[0].brain?.siblingIndex}`
-    } else if (this.rightController === 'ai') {
-      key = `${players[1].brain?.generation}.${players[1].brain?.siblingIndex}`
-    }
+    let key = `${players[1].brain?.getKey()}`
 
     const ball = new BallClass({
       onFail: side => {
@@ -343,7 +356,18 @@ export class EngineClass {
       },
     })
 
-    return new GameSet(players, ball, key)
+    const set = new GameSet(players, ball, key)
+
+    // add set to generation of right player
+    if (players[1].brain?.generation) {
+      if (!this.sets[players[1].brain?.generation]) {
+        this.sets[players[1].brain?.generation] = []
+      }
+
+      this.sets[players[1].brain?.generation].push(set)
+    }
+
+    return set
   }
 
   killSet = (generation?: number, set?: GameSet) => {
@@ -369,7 +393,12 @@ export class EngineClass {
 
   clearSets = () => {
     this.sets = []
+    this.setsCount = 0
+    this.population = 0
     this.generationsStat = []
+    this.leader = undefined
+    this.watchIndividual = undefined
+    this.watchGeneration = undefined
   }
 
   loadLeader = () => {
@@ -406,6 +435,7 @@ export class EngineClass {
         value,
       )
     }
+    this.savedPlayers = getSavedPlayers()
   }
 
   restart = () => {

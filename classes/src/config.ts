@@ -14,23 +14,23 @@ let config = {
   playerSpeed: 6,
 
   ballSpeed: 12,
-  ballSpeedEnvStep: 1,
+  ballSpeedEnvStep: 0.3,
   ballSpeedEnvFinal: 15,
-  maxMutation: 0.1,
+  maxMutation: 0.05,
   maxMutationEnvStep: -0.003,
   maxMutationEnvFinal: 0.01,
-  wallMinAngle: 10,
-  wallMinAngleEnvStep: 2,
-  wallMinAngleEnvFinal: 30,
+  wallMinAngle: 20,
+  wallMinAngleEnvStep: -2,
+  wallMinAngleEnvFinal: 0,
 
-  move: 0,
-  moveEnvStep: 0,
-  moveEnvFinal: -40,
-  bounce: 500,
+  move: -1,
+  moveEnvStep: -2,
+  moveEnvFinal: -45,
+  bounce: 1000,
   bounceEnvStep: -50,
   bounceEnvFinal: 300,
   fail: -1000,
-  failEnvStep: -1000,
+  failEnvStep: -500,
   failEnvFinal: -15000,
 
   population: 5000,
@@ -39,7 +39,7 @@ let config = {
   divisionScore: 10,
 
   maxThreshold: 0.2,
-  maxBias: 0.5,
+  maxBias: 1,
   populationIncreaseMulti: 0.1,
 }
 

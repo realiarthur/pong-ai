@@ -58,17 +58,17 @@ export class PlayerClass {
       return
     }
 
-    if ((this.yTop <= 0 && direction < 0) || (this.yBottom >= boardHeight && direction > 0)) return
-
     this.movementsSinceBounce = this.movementsSinceBounce + playerSpeed
     if (this.movementsSinceBounce > freeMovementsQuantity) {
       this.stimulate('move')
     }
 
-    if (this.previousMove !== direction) {
-      this.stimulate('move')
-      this.previousMove = direction
-    }
+    // if (this.previousMove !== direction) {
+    //   this.stimulate('move')
+    //   this.previousMove = direction
+    // }
+
+    if ((this.yTop <= 0 && direction < 0) || (this.yBottom >= boardHeight && direction > 0)) return
 
     this.yTop = Math.max(
       0,
