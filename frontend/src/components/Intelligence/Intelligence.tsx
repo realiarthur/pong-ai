@@ -1,4 +1,4 @@
-import { FC, useMemo } from 'react'
+import { FC, Fragment, useMemo } from 'react'
 import { Intelligence as IntelligenceClass } from 'classes'
 import cx from 'classnames'
 import s from './Intelligence.module.css'
@@ -84,34 +84,11 @@ const Neuron: FC<{
   )
 }
 
-const Layer: FC<{
-  layer: Array<string | number>
-  biases?: number[]
-  layerIndex: number
-  weights?: number[][]
-}> = ({ layer, layerIndex, weights, biases }) => {
-  return (
-    <>
-      {layer.map((value, neuronIndex) => (
-        <Neuron
-          key={neuronIndex}
-          layerIndex={layerIndex}
-          neuronIndex={neuronIndex}
-          layerLength={layer.length}
-          value={value}
-          bias={biases?.[neuronIndex]}
-          weights={weights?.[neuronIndex]}
-        />
-      ))}
-    </>
-  )
-}
-
 const Intelligence: FC<{
   intelligence: IntelligenceClass
   headers: string[]
   className?: string
-}> = ({ intelligence: { weights, values, biases }, headers, className }) => {
+}> = ({ intelligence: { values, biases, getOutputWeights }, headers, className }) => {
   return (
     <svg
       className={cx(s.intelligence, className)}
@@ -119,18 +96,34 @@ const Intelligence: FC<{
     >
       <g style={{ transform: 'translateX(50%)' }}>
         <g className={s.title}>
-          <Layer layerIndex={0} layer={headers} />
+          <>
+            {headers.map((header, headerIndex) => (
+              <Neuron
+                key={`title.${headerIndex}`}
+                layerIndex={0}
+                neuronIndex={headerIndex}
+                layerLength={headers.length}
+                value={header}
+              />
+            ))}
+          </>
         </g>
 
         <g style={{ transform: `translateY(${1.5 * NEURON_HEIGHT}px)` }}>
           {values.map((layer, layerIndex) => (
-            <Layer
-              key={layerIndex}
-              layerIndex={layerIndex}
-              layer={layer}
-              weights={weights[layerIndex]}
-              biases={biases[layerIndex]}
-            />
+            <Fragment key={layerIndex}>
+              {layer.map((value, neuronIndex) => (
+                <Neuron
+                  key={neuronIndex}
+                  layerIndex={layerIndex}
+                  neuronIndex={neuronIndex}
+                  layerLength={layer.length}
+                  value={value}
+                  bias={biases[layerIndex][neuronIndex]}
+                  weights={getOutputWeights(layerIndex, neuronIndex)}
+                />
+              ))}
+            </Fragment>
           ))}
         </g>
       </g>

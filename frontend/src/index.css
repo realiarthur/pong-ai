@@ -13,11 +13,11 @@
 }
 
 .light {
-  --c-main: #aaa;
+  --c-main: #888;
   --c-muted: #bbb;
-  --c-border: #d6d6d6;
+  --c-border: #ccc;
   --c-active: #aaa;
-  --c-gold: #ffd72c;
+  --c-gold: #ffd92e;
   --c-red: #ffc5c5;
   --c-green: #92cb9c;
   --c-selection: #ddd;

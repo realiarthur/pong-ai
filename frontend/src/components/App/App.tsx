@@ -11,7 +11,7 @@ import s from './App.module.css'
 import { EngineClass, getConfig, controllers, Side, Controller } from 'classes'
 import Intelligence from 'components/Intelligence/Intelligence'
 import { getNumberString } from 'utils/getNumberString'
-import Environment, { EnvFields } from 'components/Config/Config'
+import Environment, { EnvFields } from 'components/Environment/Environment'
 import cx from 'classnames'
 import SiblingsMonitor from 'components/SiblingsMonitor/SiblingsMonitor'
 
@@ -46,7 +46,10 @@ const handleChangeController: (side: Side) => ChangeEventHandler<HTMLSelectEleme
 
 // const headers = ['pY', '|ΔX|', 'bY', 'NbVx', 'bVy']
 // const headers = ['pY', "ΔX'", 'ΔX', "bY'", 'bY']
-const headers = ['p|X|', 'pY', 'b|X|', 'bY', "b|X|'", "bY'"]
+// const headers = ['p|X|', 'pY', 'b|X|', 'bY', "b|X|'", "bY'"]
+// const headers = ['ΔX', 'pY', 'bY', 'ᾱ', 'e']
+// const headers = ['ΔX', 'pY', 'bY', "bVx'", 'bVy', 'e']
+const headers = ['ΔX', 'pY', 'bY', "bVx'", 'bVy']
 
 type EngineUpdates = ReturnType<EngineClass['update']>
 const updatesInit = engine.update()
@@ -81,7 +84,7 @@ const App = () => {
   }, [on])
 
   const { population: maxPopulation } = getConfig()
-  const { leader, hasOnlyAi, hasEnvAi, hasAi, watchIndividual } = engine
+  const { leader, hasOnlyAi, hasEnvAi, hasAi, watchIndividual, hasKeys } = engine
 
   const random = () => {
     clearSets()
@@ -92,28 +95,28 @@ const App = () => {
     sets.push(leader.set)
   }
 
-  const envFields: EnvFields | null =
-    // hasOnlyAi
-    // ? [
-    //     ['max mutation', 'maxMutation'],
-    //     ['speed', 'ballSpeed'],
-    //     ['division score', 'divisionScore'],
-    //     ['population', 'population'],
-    //   ]
-    // : hasEnvAi
-    // ?
-    [
-      ['_header', ['current', 'step', 'final']],
-      ['bounce', ['bounce', 'bounceEnvStep', 'bounceEnvFinal']],
-      ['fail', ['fail', 'failEnvStep', 'failEnvFinal']],
-      ['move', ['move', 'moveEnvStep', 'moveEnvFinal']],
-      ['speed', ['ballSpeed', 'ballSpeedEnvStep', 'ballSpeedEnvFinal']],
-      ['mutation', ['maxMutation', 'maxMutationEnvStep', 'maxMutationEnvFinal']],
-      ['wall min°', ['wallMinAngle', 'wallMinAngleEnvStep', 'wallMinAngleEnvFinal']],
-      ['_header', ['max', 'birth', 'death']],
-      ['population', ['population', 'divisionThreshold', 'deathThreshold']],
-    ]
-  // : [['speed', 'ballSpeed']]
+  const envFields: EnvFields | null = hasOnlyAi
+    ? [
+        ['_header', ['current', 'step', 'final']],
+        ['speed', ['ballSpeed', 'ballSpeedEnvStep', 'ballSpeedEnvFinal']],
+        ['mutation', ['maxMutation', 'maxMutationEnvStep', 'maxMutationEnvFinal']],
+        ['_header', ['max', 'score']],
+        ['population', ['population', 'divisionScore']],
+      ]
+    : hasEnvAi
+    ? [
+        ['_header', ['current', 'step', 'final']],
+        ['bounce', ['bounce', 'bounceEnvStep', 'bounceEnvFinal']],
+        ['fail', ['fail', 'failEnvStep', 'failEnvFinal']],
+        ['move', ['move', 'moveEnvStep', 'moveEnvFinal']],
+        ['middle', ['middle', 'middleEnvStep', 'middleEnvFinal']],
+        ['speed', ['ballSpeed', 'ballSpeedEnvStep', 'ballSpeedEnvFinal']],
+        ['mutation', ['maxMutation', 'maxMutationEnvStep', 'maxMutationEnvFinal']],
+        ['wall min°', ['wallMinAngle', 'wallMinAngleEnvStep', 'wallMinAngleEnvFinal']],
+        ['_header', ['max', 'birth', 'death']],
+        ['population', ['population', 'divisionThreshold', 'deathThreshold']],
+      ]
+    : [['speed', ['ballSpeed']]]
 
   return (
     <div className={cx(s.app)}>
@@ -226,7 +229,7 @@ const App = () => {
 
                   <Environment fields={envFields} />
 
-                  <p className={s.title}>Siblings number</p>
+                  <p className={s.title}>Sibling number</p>
 
                   <SiblingsMonitor engine={engine} />
                   <div className={s.controls}>

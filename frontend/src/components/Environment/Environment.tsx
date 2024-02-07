@@ -1,6 +1,6 @@
 import { FC, FocusEvent, useEffect, useState } from 'react'
 import { getConfig, setConfig, Config, subscribe, StimulateType, envConfig } from 'classes'
-import s from './Config.module.css'
+import s from './Environment.module.css'
 
 const initConfig = getConfig()
 
@@ -22,8 +22,6 @@ const Environment: FC<{ fields: EnvFields }> = ({ fields }) => {
     setConfig({ [e.target.name as keyof Config]: +e.target.value }, 'ui')
   }
 
-  let tabIndex = -1
-
   return (
     <div className={s.config} key={valuesKey}>
       {fields.map(([title, keys], index) => {
@@ -42,6 +40,7 @@ const Environment: FC<{ fields: EnvFields }> = ({ fields }) => {
               <>
                 {keys.map(key => (
                   <input
+                    key={key}
                     name={key}
                     defaultValue={values[key as keyof Config]}
                     onBlur={onBlur}
