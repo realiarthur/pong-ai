@@ -1,5 +1,5 @@
 import { getConfig } from './config'
-const { maxThreshold, maxBias } = getConfig()
+const { maxThreshold, maxInitBias } = getConfig()
 
 // inputs: [
 //  player.yTop,
@@ -10,9 +10,16 @@ const { maxThreshold, maxBias } = getConfig()
 //  ball.y,
 // ]
 // outputs: [up, down]
-const INPUT_COUNT = 6
-const OUTPUT_COUNT = 1
-const LAYERS_CONFIG = [INPUT_COUNT, 6, 4, OUTPUT_COUNT]
+const LAYERS_CONFIG = [5, 4, 2]
+
+// const INPUT_ANALYSER_CONNECTIONS = [
+//   [1, 0, -1, 0, 0, 0], //PBx
+//   [0, 1, 0, -1, 0, 0], // PBy
+//   [0, 0, 1, 0, -1, 0], // Vx
+//   [0, 0, 0, 1, 0, -1], // Vy
+//   [0, 0, 1, 0, 0, 0], // Mx
+//   [0, 1, 0, 0, 0, 0], // My
+// ]
 
 type BiValue = 0 | 1 | -1
 export type Layer<T = number, TLength = void> = TLength extends number
@@ -21,13 +28,21 @@ export type Layer<T = number, TLength = void> = TLength extends number
 export type Weights = number[][][] // layer, input,
 export type ActivationFn = (x: number) => number
 
-const thresholdActivation = (x: number, threshold = 0): BiValue => {
-  const abs = Math.abs(x)
-  return abs > threshold ? ((x / abs) as -1 | 1) : 0
+const thresholdActivation = (x: number, threshold = 0, negative = false): BiValue => {
+  if (negative) {
+    const abs = Math.abs(x)
+    return abs > threshold ? (Math.sign(x) as BiValue) : 0
+  } else {
+    return x > threshold ? 1 : 0
+  }
 }
 
-const tanhActivation = (x: number): number => {
+const tanh = (x: number): number => {
   return 2 / (1 + Math.pow(Math.E, -2 * x)) - 1
+}
+
+const sigmoid = (x: number): number => {
+  return 1 / (1 + Math.pow(Math.E, -x))
 }
 
 const limiter = (value: number, limit = 1) =>
@@ -36,13 +51,17 @@ const limiter = (value: number, limit = 1) =>
 const signRandom = (maxAbs = 1) => 2 * (Math.random() - 0.5) * maxAbs
 const thresholdRandom = () => Math.random() * maxThreshold
 
-const weighedSum = (inputs: Layer, weights: Layer[], outputIndex: number) =>
+const weighedSum = (inputs: Layer, weights: Layer) =>
   inputs.reduce((sum, inputValue, inputIndex) => {
-    return sum + inputValue * weights[inputIndex][outputIndex]
+    return sum + inputValue * weights[inputIndex]
   }, 0)
 
-const weighedAverage = (inputs: Layer, weights: Layer[], outputIndex: number) =>
-  weighedSum(inputs, weights, outputIndex) / inputs.length
+const weighedAverage = (inputs: Layer, weights: Layer) => {
+  return weighedSum(inputs, weights) / weights.filter(x => x).length
+}
+
+const randomChoice = (value1: number, value2: number) =>
+  Math.random() > 0.5 ? [value1, value2] : [value2, value1]
 
 type IntelligenceProps = {
   generation?: number
@@ -50,6 +69,7 @@ type IntelligenceProps = {
   weights?: Weights
   biases?: Layer[]
   threshold?: number
+  layersConfig?: number[]
 }
 
 export class Intelligence {
@@ -59,114 +79,172 @@ export class Intelligence {
   weights: number[][][] = []
   biases: Layer[] = []
   threshold: number
+  layersConfig = LAYERS_CONFIG
 
-  constructor({ generation, siblingIndex, weights, threshold, biases }: IntelligenceProps = {}) {
+  constructor({
+    generation,
+    siblingIndex,
+    weights,
+    threshold,
+    biases,
+    layersConfig,
+  }: IntelligenceProps = {}) {
     this.generation = generation ?? 1
     this.siblingIndex = siblingIndex || 0
-    this.weights = weights ?? Intelligence.mapWeights(() => signRandom())
-    this.biases = biases ?? Intelligence.mapBiases(() => signRandom(maxBias))
+    this.weights = weights ?? this.mapWeights(() => signRandom())
+    this.biases = biases ?? this.mapLayers(() => signRandom(maxInitBias))
     this.threshold = threshold ?? thresholdRandom()
+    this.layersConfig = layersConfig ?? LAYERS_CONFIG
   }
 
   mutate = (siblingIndex: number) => {
     const { maxMutation } = getConfig()
     return new Intelligence({
       generation: this.generation + 1,
-      weights: Intelligence.mapWeights((layer, input, output) => {
-        const mutatedWeight = this.weights[layer][input][output] + signRandom() * maxMutation
+      weights: this.mapWeights(weight => {
+        const mutatedWeight = weight + signRandom() * maxMutation
         return limiter(mutatedWeight)
       }),
-      biases: Intelligence.mapBiases((layer, neuron) => {
-        const mutatedBias = this.biases[layer][neuron] + signRandom(maxBias) * maxMutation
-        return limiter(mutatedBias)
+      biases: this.mapLayers(({ bias }) => {
+        const mutatedBias = bias ? bias + signRandom(maxInitBias) * maxMutation : 0
+        return mutatedBias
       }),
       threshold: limiter(this.threshold + signRandom() * maxMutation * maxThreshold),
       siblingIndex,
     })
   }
 
-  // TODOC use mapLayer
-  static mapWeights = (
-    callback: (layerIndex: number, inputIndex: number, outputIndex: number) => number,
-  ) => {
-    const result: Weights = []
-    for (let layerIndex = 0; layerIndex < LAYERS_CONFIG.length - 1; layerIndex++) {
-      result[layerIndex] = result[layerIndex] ?? []
-
-      for (let inputIndex = 0; inputIndex < LAYERS_CONFIG[layerIndex]; inputIndex++) {
-        result[layerIndex][inputIndex] = result[layerIndex][inputIndex] ?? []
-
-        for (let outputIndex = 0; outputIndex < LAYERS_CONFIG[layerIndex + 1]; outputIndex++) {
-          result[layerIndex][inputIndex][outputIndex] = callback(
-            layerIndex,
-            inputIndex,
-            outputIndex,
-          )
-        }
-      }
-    }
-    return result
-  }
-
-  static mapBiases = (callback: (layerIndex: number, neuronIndex: number) => number) => {
-    return Intelligence.mapLayer((layerIndex, neuronIndex) => {
-      if (layerIndex > 0) {
-        return callback(layerIndex, neuronIndex)
-      }
-
-      return 0
+  static crossover = (parent1: Intelligence, parent2: Intelligence, siblingIndex: number) => {
+    const weightChild2: Layer[][] = []
+    const weightChild1 = parent1.mapLayers<Layer>(({ weights, layerIndex, neuronIndex }) => {
+      weightChild2[layerIndex] = weightChild2[layerIndex] || []
+      weightChild2[layerIndex][neuronIndex] = []
+      return weights.map((weight, weightIndex) => {
+        const values = randomChoice(weight, parent2.weights[layerIndex][neuronIndex][weightIndex])
+        weightChild2[layerIndex][neuronIndex][weightIndex] = values[1]
+        return values[0]
+      })
     })
+
+    const biasesChild2: Layer[] = []
+    const biasesChild1 = parent1.mapLayers(({ bias, layerIndex, neuronIndex }) => {
+      biasesChild2[layerIndex] = biasesChild2[layerIndex] || []
+      if (!bias) {
+        biasesChild2[layerIndex][neuronIndex] = 0
+        return 0
+      }
+
+      const values = randomChoice(bias, parent2.biases[layerIndex][neuronIndex])
+      biasesChild2[layerIndex][neuronIndex] = values[1]
+
+      return values[0]
+    })
+
+    const [thresholdChild1, thresholdChild2] = randomChoice(parent1.threshold, parent2.threshold)
+
+    return [
+      new Intelligence({
+        generation: Math.max(parent1.generation, parent2.generation) + 1,
+        weights: weightChild1,
+        biases: biasesChild1,
+        threshold: thresholdChild1,
+        siblingIndex, // TODOC
+      }),
+
+      new Intelligence({
+        generation: Math.max(parent1.generation, parent2.generation) + 1,
+        weights: weightChild2,
+        biases: biasesChild2,
+        threshold: thresholdChild2,
+        siblingIndex: siblingIndex + 1, // TODOC
+      }),
+    ]
   }
 
-  static mapLayer = (callback: (layerIndex: number, neuronIndex: number) => number) => {
-    const result: Layer[] = []
-    for (let layerIndex = 0; layerIndex < LAYERS_CONFIG.length; layerIndex++) {
-      result[layerIndex] = result[layerIndex] ?? []
+  mapLayers = <TReturn extends number | Layer = number>(
+    callback: (neuron: {
+      bias: number | null
+      weights: Layer
+      prevCalcLayer: TReturn[] | null
+      layerIndex: number
+      neuronIndex: number
+    }) => TReturn,
+  ) => {
+    const result: TReturn[][] = []
+    for (let layerIndex = 0; layerIndex < this.layersConfig.length; layerIndex++) {
+      const prevCalcLayer = layerIndex > 0 ? result[layerIndex - 1] : null
+      result[layerIndex] = []
 
-      for (let neuronIndex = 0; neuronIndex < LAYERS_CONFIG[layerIndex]; neuronIndex++) {
-        result[layerIndex][neuronIndex] = callback(layerIndex, neuronIndex)
+      for (let neuronIndex = 0; neuronIndex < this.layersConfig[layerIndex]; neuronIndex++) {
+        const weights = prevCalcLayer
+          ? this.weights[layerIndex]?.[neuronIndex] ?? Array.from({ length: prevCalcLayer?.length })
+          : []
+        const bias = layerIndex > 0 ? this.biases[layerIndex]?.[neuronIndex] || 0 : null
+        result[layerIndex][neuronIndex] = callback({
+          bias,
+          weights,
+          prevCalcLayer,
+          layerIndex,
+          neuronIndex,
+        })
       }
     }
     return result
   }
 
-  calculate = (inputs: Layer, calculatedLayerIndex = 1): Layer => {
-    const weights = this.weights[calculatedLayerIndex - 1]
-    const biases = this.biases[calculatedLayerIndex]
-    const outputsCount = LAYERS_CONFIG[calculatedLayerIndex]
-    const isOutputLayer = calculatedLayerIndex === LAYERS_CONFIG.length - 1
+  mapWeights = (callback: (weight: number) => number): number[][][] => {
+    const result = this.mapLayers<Layer>(({ weights }) => {
+      return weights.map(callback)
+    })
 
-    if (calculatedLayerIndex === 1) {
-      const prevBallPosition = this.values[0] ? this.values[0].slice(2, 4) : inputs.slice(-2)
-      this.values[0] = [...inputs, ...prevBallPosition]
-    }
+    return result
+  }
 
-    const outputs: Layer = []
-    for (let outputIndex = 0; outputIndex < outputsCount; outputIndex++) {
-      const value = weighedSum(inputs, weights, outputIndex)
-      const biasedValue = value + biases[outputIndex]
-      // const activation: ActivationFn = isOutputLayer ? x => thresholdActivation(x, this.threshold) : x => x
-      const activation: ActivationFn = isOutputLayer
-        ? x => thresholdActivation(tanhActivation(x), this.threshold)
-        : x => tanhActivation(x)
+  calculate = (inputs: Layer): number => {
+    this.values = this.mapLayers(({ bias, weights, prevCalcLayer, layerIndex, neuronIndex }) => {
+      const isInput = layerIndex === 0 || !prevCalcLayer || !weights.length
+      if (isInput) {
+        return inputs[neuronIndex] ?? 0
+      }
 
-      // const activation: ActivationFn = x => thresholdActivation(x, this.threshold)
-      outputs.push(activation(biasedValue))
-    }
+      const isOutput = layerIndex === this.layersConfig.length - 1
 
-    this.values[calculatedLayerIndex] = outputs
+      // tanh + bias * inputs
+      // const sum = weighedSum(prevCalcLayer, weights)
+      // const biased = sum + (bias || 0)
+      // const activation = tanh(biased)
 
-    return isOutputLayer ? outputs : this.calculate(outputs, calculatedLayerIndex + 1)
+      // if (isOutput) {
+      //   return thresholdActivation(activation)
+      // }
+
+      // linear + bias
+      const sum = weighedSum(prevCalcLayer, weights)
+      const activation = thresholdActivation(sum, bias || 0)
+
+      return activation
+    })
+
+    const outputs = this.values[this.values.length - 1]
+
+    return outputs[0] - outputs[1]
+  }
+
+  getOutputWeights = (layer: number, neuron: number) => {
+    return (this.weights[layer + 1] || []).map(
+      nextLayerNeuronWeights => nextLayerNeuronWeights[neuron],
+    )
   }
 
   serialize = () => {
-    const { generation, siblingIndex, weights, threshold, biases } = this
+    const { generation, siblingIndex, weights, threshold, biases, layersConfig } = this
     return JSON.stringify({
       generation,
       siblingIndex,
       weights,
       threshold,
       biases,
+      layersConfig,
     })
   }
 

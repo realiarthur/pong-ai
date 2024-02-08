@@ -1,5 +1,5 @@
 import { BallClass } from './BallClass'
-import { Direction, PlayerClass } from './PlayerClass'
+import { PlayerClass } from './PlayerClass'
 import { getConfig } from './config'
 
 const { paddleHeight, maxBounceAngle, boardWidth, boardHeight } = getConfig()
@@ -11,16 +11,30 @@ const getBounceStimulation = (bounceAngle: number) => {
   return 1 + (0.5 * ((move / moveEnvFinal) * bounceAngle)) / maxBounceAngle
 }
 
+const getMiddleStimulation = (y: number) => 1 / (1 + 100 * Math.pow(y - 0.5, 2)) - 0.1
+
 export class GameSet {
   ball: BallClass
   players: readonly [PlayerClass, PlayerClass]
   key: string
   dead = false
 
-  constructor(players: readonly [PlayerClass, PlayerClass], ball: BallClass, key: string) {
+  constructor(players: readonly [PlayerClass, PlayerClass], key: string) {
     this.players = players
-    this.ball = ball
     this.key = key
+    this.ball = new BallClass({
+      onFail: side => {
+        if (side === 'left') {
+          this.players[1].addScore()
+          this.players[0].stimulate('fail')
+          this.players[0].refill()
+        } else {
+          this.players[0].addScore()
+          this.players[1].stimulate('fail')
+          this.players[1].refill()
+        }
+      },
+    })
   }
 
   kill = () => {
@@ -38,31 +52,38 @@ export class GameSet {
     const { x: prevX, y: prevY } = ball
     ball.update()
 
-    //  player.yTop,
-    //  |player.xEdge|
-    //  ball.|x|',
-    //  ball.|x|,
-    //  ball.y',
-    //  ball.y,
+    // ['ΔX', 'pY', 'bY', "bVx'", 'bVy', 'e']
 
     if (left.brain) {
-      const [direction] = left.brain.calculate([
-        left.xEdge / boardWidth,
-        left.yTop / playerMaxY,
-        ball.x / boardWidth,
+      const scaledPlayerY = left.yTop / playerMaxY
+      left.stimulate('middle', getMiddleStimulation(scaledPlayerY))
+
+      const direction = left.brain.calculate([
+        (ball.x - left.xEdge) / boardWidth,
+        scaledPlayerY,
         ball.y / boardHeight,
-      ]) as [Direction]
+        // ball.angleLeft,
+        ball.vxPart,
+        ball.vyPart,
+        // left.energy,
+      ])
 
       left.updatePosition(direction)
     }
 
     if (right.brain) {
-      const [direction] = right.brain.calculate([
-        (boardWidth - right.xEdge) / boardWidth,
-        right.yTop / playerMaxY,
-        (boardWidth - ball.x) / boardWidth,
+      const scaledPlayerY = right.yTop / playerMaxY
+      right.stimulate('middle', getMiddleStimulation(scaledPlayerY))
+
+      const direction = right.brain.calculate([
+        (right.xEdge - ball.x) / boardWidth,
+        scaledPlayerY,
         ball.y / boardHeight,
-      ]) as [Direction]
+        // ball.angleRight,
+        -ball.vxPart,
+        ball.vyPart,
+        // right.energy,
+      ])
 
       right.updatePosition(direction)
     }
@@ -72,9 +93,12 @@ export class GameSet {
         const { wallMinAngle } = getConfig()
         const wallMinRadAngle = (wallMinAngle / 180) * Math.PI
 
+        const consumeMinAngle = Math.random() > 0.5
         const bounceAngle =
-          (wallMinRadAngle + (maxBounceAngle - wallMinRadAngle) * Math.random()) *
-          (Math.random() > 0.5 ? 1 : -1)
+          Math.sign(Math.random() - 0.5) *
+          (consumeMinAngle
+            ? wallMinRadAngle + (maxBounceAngle - wallMinRadAngle) * Math.random()
+            : wallMinRadAngle * Math.random())
         return keeper.side === 'left' ? bounceAngle : Math.PI - bounceAngle
       }
       const relativeIntersectY = keeper.yTop + keeper.height / 2 - this.ball.y
@@ -86,12 +110,16 @@ export class GameSet {
       const bounceAngle = getPlayerIntersectAngle(left)
       ball.setAngle(bounceAngle)
       left.stimulate('bounce', getBounceStimulation(bounceAngle))
+      left.refill()
+      right.refill()
     }
 
     if (ball.shouldBounced(right, prevX)) {
       const bounceAngle = getPlayerIntersectAngle(right)
       ball.setAngle(bounceAngle)
       right.stimulate('bounce', getBounceStimulation(bounceAngle))
+      left.refill()
+      right.refill()
     }
   }
 }

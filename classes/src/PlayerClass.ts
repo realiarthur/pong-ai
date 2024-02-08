@@ -1,18 +1,16 @@
 import { Intelligence } from './Intelligence'
-import { getConfig, Config } from './config'
+import { getConfig, Config, StimulateType } from './config'
 
 const { paddleWidth, paddleHeight, boardWidth, boardHeight, playerSpeed, boardPadding } =
   getConfig()
 
-const freeMovementsQuantity = boardHeight - paddleHeight
+const freeEnergy = (boardHeight - paddleHeight) / 2
+const energyStep = playerSpeed / freeEnergy
 
 export type Side = 'left' | 'right'
 export type Vector2 = [number, number]
-export type Direction = -1 | 1 | 0
 export const controllers = ['env', 'ai', 'keys'] as const
 export type Controller = (typeof controllers)[number]
-export const stimulateTypes = ['bounce', 'move', 'fail'] as const
-export type StimulateType = (typeof stimulateTypes)[number]
 
 export type PlayerClassProps = {
   side: Side
@@ -32,7 +30,7 @@ export class PlayerClass {
   brain?: Intelligence
   score: number = 0
   stimulation: number = 0
-  movementsSinceBounce = 0
+  energy = 1
   dead = false
   previousMove = -1 | 1
 
@@ -52,15 +50,22 @@ export class PlayerClass {
     this.dead = true
   }
 
-  updatePosition = (direction: Direction) => {
+  refill = () => {
+    this.energy = 1
+  }
+
+  updatePosition = (direction: number) => {
     if (direction === 0) {
       this.previousMove = 0
       return
     }
 
-    this.movementsSinceBounce = this.movementsSinceBounce + playerSpeed
-    if (this.movementsSinceBounce > freeMovementsQuantity) {
-      this.stimulate('move')
+    const directionAbs = Math.abs(direction)
+
+    this.energy = this.energy - directionAbs * energyStep
+    if (this.energy <= 0) {
+      this.energy = 0
+      this.stimulate('move', directionAbs)
     }
 
     // if (this.previousMove !== direction) {
@@ -87,10 +92,6 @@ export class PlayerClass {
 
     const config = getConfig()
     this.stimulation = this.stimulation + config[typeOrValue as keyof Config] * multi
-
-    if (typeOrValue === 'bounce') {
-      this.movementsSinceBounce = 0
-    }
   }
 
   addScore = () => {

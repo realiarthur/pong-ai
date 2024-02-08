@@ -11,35 +11,38 @@ let config = {
   paddleHeight: 75,
   maxBounceAngle: Math.PI / 4.5,
 
-  playerSpeed: 6,
+  playerSpeed: 8,
 
   ballSpeed: 12,
   ballSpeedEnvStep: 0.3,
-  ballSpeedEnvFinal: 15,
-  maxMutation: 0.05,
+  ballSpeedEnvFinal: 16,
+  maxMutation: 0.1,
   maxMutationEnvStep: -0.003,
   maxMutationEnvFinal: 0.01,
   wallMinAngle: 20,
-  wallMinAngleEnvStep: -2,
-  wallMinAngleEnvFinal: 0,
+  wallMinAngleEnvStep: 1,
+  wallMinAngleEnvFinal: 40,
 
-  move: -1,
+  move: 0,
   moveEnvStep: -2,
-  moveEnvFinal: -45,
+  moveEnvFinal: -30,
   bounce: 1000,
   bounceEnvStep: -50,
   bounceEnvFinal: 300,
-  fail: -1000,
+  fail: -500,
   failEnvStep: -500,
-  failEnvFinal: -15000,
+  failEnvFinal: -20000,
+  middle: 0,
+  middleEnvStep: 1,
+  middleEnvFinal: 5,
 
   population: 5000,
   divisionThreshold: 10000,
   deathThreshold: -10000,
   divisionScore: 10,
 
-  maxThreshold: 0.2,
-  maxBias: 1,
+  maxThreshold: 0.5,
+  maxInitBias: 0.5,
   populationIncreaseMulti: 0.1,
 }
 
@@ -72,4 +75,30 @@ export const subscribe = (callback: Callback) => {
   return () => {
     subscribers = subscribers.filter(item => item !== callback)
   }
+}
+
+export const stimulateTypes = ['bounce', 'move', 'fail', 'middle'] as const
+export type StimulateType = (typeof stimulateTypes)[number]
+export const envConfig = [...stimulateTypes, 'ballSpeed', 'maxMutation', 'wallMinAngle'] as const
+
+export const shiftEnvironment = () => {
+  setConfig(config => {
+    return envConfig.reduce((result, type) => {
+      const value = config[type]
+      const step = config[`${type}EnvStep`]
+      const final = config[`${type}EnvFinal`]
+
+      if (value === final || step === 0) {
+        return result
+      }
+
+      const newValue = Math.round((value + step) * 1000) / 1000
+      const hasExceedFinal = step > 0 ? newValue > final : newValue < final
+
+      return {
+        ...result,
+        [type]: hasExceedFinal ? final : newValue,
+      }
+    }, {} as Partial<Config>)
+  })
 }

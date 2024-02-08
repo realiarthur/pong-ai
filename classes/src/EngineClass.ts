@@ -1,16 +1,13 @@
-import { BallClass } from './BallClass'
 import { GameSet } from './GameSet'
 import { Generation } from './Generation'
 import { Intelligence } from './Intelligence'
-import { Controller, PlayerClass, stimulateTypes } from './PlayerClass'
-import { Config, getConfig, setConfig, subscribe } from './config'
+import { Controller, PlayerClass } from './PlayerClass'
+import { Config, getConfig, setConfig, shiftEnvironment, subscribe } from './config'
 import { getSavedPlayers } from './utils/getSavedPlayers'
 
 const LOCAL_STORAGE_LEADER = 'leader'
 const LEADER_AUTO_UPDATE_TIMEOUT = 7500
 const { VISIBLE_SETS_COUNT } = getConfig()
-
-export const envConfig = [...stimulateTypes, 'ballSpeed', 'maxMutation', 'wallMinAngle'] as const
 
 type Leader = {
   set: GameSet
@@ -75,7 +72,34 @@ export class EngineClass {
     this.hasKeys = this.leftController === 'keys' || this.rightController === 'keys'
 
     this.clearSets()
-    this.createSet()
+    this.population = 1
+    const set = this.createSet()
+
+    if (this.hasAi) {
+      const index = this.leftController === 'ai' ? 0 : 1
+
+      const leader = set.players[index].brain
+      if (!leader) return
+
+      this.leader = {
+        set,
+        player: set.players[index],
+        playerIndex: index,
+      }
+
+      this.sets[leader.generation] = [set]
+      const generationNumber = leader?.generation || 0
+      const generation = this.createGeneration(generationNumber)
+      generation.count = 1
+      generation.lastSiblingIndex = leader.siblingIndex || 0
+
+      this.watchIndividual = {
+        set,
+        player: set.players[index],
+        playerIndex: index,
+      }
+      this.watchGeneration = leader.generation
+    }
   }
 
   update = () => {
@@ -207,8 +231,52 @@ export class EngineClass {
     }
   }
 
-  dividePlayer(leader: Leader): boolean {
-    const { player, set, playerIndex } = leader
+  crossoverPlayer(candidate: Leader): boolean {
+    // TODOC SAME CODE AS DEVIDE >>>
+    const { player, set, playerIndex } = candidate
+    if (!player.brain) return false
+
+    const { divisionThreshold, divisionScore, population, populationIncreaseMulti } = this.config
+
+    const maxPopulation = this.hasOnlyAi ? population / 2 : population
+    const envGameDivision =
+      this.hasEnvAi && divisionThreshold && player.stimulation >= divisionThreshold
+    const aiAiGameDivision = this.hasOnlyAi && player.score >= divisionScore
+
+    if (
+      !(
+        (envGameDivision || aiAiGameDivision) &&
+        // TODOC SAME CODE AS DEVIDE <<<
+
+        this.population <= maxPopulation * (1 - populationIncreaseMulti * 2)
+      )
+    )
+      return false
+
+    if (this.hasOnlyAi) {
+      this.killSet(player.brain.generation, set)
+      if (playerIndex === 1) {
+        this.createSet(player.brain)
+        return true
+      }
+      return false
+    }
+
+    player.stimulation = 0
+    player.score = 0
+
+    const maxGeneration = this.generationsStat.length - 1 || 1
+
+    this.createSets(player.brain)
+
+    if (player.brain.generation === maxGeneration) {
+      shiftEnvironment()
+    }
+    return true
+  }
+
+  dividePlayer(candidate: Leader): boolean {
+    const { player, set, playerIndex } = candidate
     if (!player.brain) return false
 
     const { divisionThreshold, divisionScore, population, populationIncreaseMulti } = this.config
@@ -243,27 +311,7 @@ export class EngineClass {
     this.createSets(player.brain)
 
     if (player.brain.generation === maxGeneration) {
-      console.log('complication for new generation:', player.brain.generation + 1)
-
-      setConfig(config => {
-        return envConfig.reduce((result, type) => {
-          const value = config[type]
-          const step = config[`${type}EnvStep`]
-          const final = config[`${type}EnvFinal`]
-
-          const hasReachedFinal =
-            value === final || step === 0 || (step > 0 ? value > final : value < final)
-
-          if (hasReachedFinal) {
-            return result
-          }
-
-          return {
-            ...result,
-            [type]: Math.round((value + step) * 1000) / 1000,
-          }
-        }, {} as Partial<Config>)
-      })
+      shiftEnvironment()
     }
     return true
   }
@@ -344,19 +392,7 @@ export class EngineClass {
 
     let key = `${players[1].brain?.getKey()}`
 
-    const ball = new BallClass({
-      onFail: side => {
-        if (side === 'left') {
-          players[1].addScore()
-          players[0].stimulate('fail')
-        } else {
-          players[0].addScore()
-          players[1].stimulate('fail')
-        }
-      },
-    })
-
-    const set = new GameSet(players, ball, key)
+    const set = new GameSet(players, key)
 
     // add set to generation of right player
     if (players[1].brain?.generation) {
