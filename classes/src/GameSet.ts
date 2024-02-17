@@ -2,9 +2,11 @@ import { BallClass } from './BallClass'
 import { PlayerClass } from './PlayerClass'
 import { getConfig } from './config'
 
-const { paddleHeight, maxBounceAngle, boardWidth, boardHeight } = getConfig()
+const { paddleHeight, paddleWidth, boardPadding, maxBounceAngle, boardWidth, boardHeight } =
+  getConfig()
 
 const playerMaxY = boardHeight - paddleHeight
+const ballMaxDistance = boardWidth - 2 * (paddleWidth + boardPadding)
 
 const getBounceStimulation = (bounceAngle: number) => {
   const { move, moveEnvFinal } = getConfig()
@@ -18,6 +20,7 @@ export class GameSet {
   players: readonly [PlayerClass, PlayerClass]
   key: string
   dead = false
+  survived = false
 
   constructor(players: readonly [PlayerClass, PlayerClass], key: string) {
     this.players = players
@@ -41,31 +44,28 @@ export class GameSet {
     this.dead = true
   }
 
-  // https://gamedev.stackexchange.com/questions/4253/in-pong-how-do-you-calculate-the-balls-direction-when-it-bounces-off-the-paddl
-
   tick = () => {
     const {
       ball,
       players: [left, right],
     } = this
 
-    const { x: prevX, y: prevY } = ball
     ball.update()
 
-    // ['ΔX', 'pY', 'bY', "bVx'", 'bVy', 'e']
+    const scaledBallY = ball.y / boardHeight
 
     if (left.brain) {
       const scaledPlayerY = left.yTop / playerMaxY
-      left.stimulate('middle', getMiddleStimulation(scaledPlayerY))
+      if (ball.vxPart > 0) {
+        left.stimulate('middle', getMiddleStimulation(scaledPlayerY))
+      }
 
       const direction = left.brain.calculate([
-        (ball.x - left.xEdge) / boardWidth,
+        (ball.x - left.xEdge) / ballMaxDistance,
         scaledPlayerY,
-        ball.y / boardHeight,
-        // ball.angleLeft,
+        scaledBallY,
         ball.vxPart,
         ball.vyPart,
-        // left.energy,
       ])
 
       left.updatePosition(direction)
@@ -73,16 +73,16 @@ export class GameSet {
 
     if (right.brain) {
       const scaledPlayerY = right.yTop / playerMaxY
-      right.stimulate('middle', getMiddleStimulation(scaledPlayerY))
+      if (ball.vxPart < 0) {
+        right.stimulate('middle', getMiddleStimulation(scaledPlayerY))
+      }
 
       const direction = right.brain.calculate([
-        (right.xEdge - ball.x) / boardWidth,
+        (right.xEdge - ball.x) / ballMaxDistance,
         scaledPlayerY,
-        ball.y / boardHeight,
-        // ball.angleRight,
+        scaledBallY,
         -ball.vxPart,
         ball.vyPart,
-        // right.energy,
       ])
 
       right.updatePosition(direction)
@@ -106,7 +106,7 @@ export class GameSet {
       return keeper.side === 'left' ? bounceAngle : Math.PI - bounceAngle
     }
 
-    if (ball.shouldBounced(left, prevX)) {
+    if (ball.shouldBounced(left, ball.x)) {
       const bounceAngle = getPlayerIntersectAngle(left)
       ball.setAngle(bounceAngle)
       left.stimulate('bounce', getBounceStimulation(bounceAngle))
@@ -114,7 +114,7 @@ export class GameSet {
       right.refill()
     }
 
-    if (ball.shouldBounced(right, prevX)) {
+    if (ball.shouldBounced(right, ball.x)) {
       const bounceAngle = getPlayerIntersectAngle(right)
       ball.setAngle(bounceAngle)
       right.stimulate('bounce', getBounceStimulation(bounceAngle))

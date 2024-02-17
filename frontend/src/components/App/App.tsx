@@ -1,19 +1,14 @@
-import {
-  ChangeEvent,
-  Fragment,
-  useLayoutEffect,
-  useReducer,
-  useState,
-  ChangeEventHandler,
-} from 'react'
+import { useLayoutEffect, useState, ChangeEventHandler, useEffect } from 'react'
 import Board from 'components/Board/Board'
 import s from './App.module.css'
 import { EngineClass, getConfig, controllers, Side, Controller } from 'classes'
 import Intelligence from 'components/Intelligence/Intelligence'
-import { getNumberString } from 'utils/getNumberString'
 import Environment, { EnvFields } from 'components/Environment/Environment'
 import cx from 'classnames'
 import SiblingsMonitor from 'components/SiblingsMonitor/SiblingsMonitor'
+import { useKey } from 'utils/useKey'
+
+const { VISIBLE_SETS_COUNT } = getConfig()
 
 type Theme = 'dark' | 'light'
 const initTheme: Theme = 'dark'
@@ -23,9 +18,7 @@ const engine = new EngineClass()
 const {
   loadLeader,
   saveLeader,
-  createSets,
   restart,
-  clearSets,
   killSet,
   update,
   setControllers,
@@ -35,27 +28,26 @@ const {
 
 setControllers('env', 'ai')
 
-const handleChangeController: (side: Side) => ChangeEventHandler<HTMLSelectElement> = side => e => {
-  const key = e.target.value
-  const controller = !!savedPlayers[key] ? savedPlayers[key] : (key as Controller)
-
-  const leftController = side === 'left' ? controller : engine.leftController
-  const rightController = side === 'right' ? controller : engine.rightController
-  setControllers(leftController, rightController)
-}
-
 // const headers = ['pY', '|ΔX|', 'bY', 'NbVx', 'bVy']
 // const headers = ['pY', "ΔX'", 'ΔX', "bY'", 'bY']
 // const headers = ['p|X|', 'pY', 'b|X|', 'bY', "b|X|'", "bY'"]
 // const headers = ['ΔX', 'pY', 'bY', 'ᾱ', 'e']
 // const headers = ['ΔX', 'pY', 'bY', "bVx'", 'bVy', 'e']
-const headers = ['ΔX', 'pY', 'bY', "bVx'", 'bVy']
+// const headers = ['ΔX', 'pY', 'bY', "bVx'", 'bVy']
+const headers = ['ΔX', 'pY', 'bY', "cos'", 'sin']
 
 type EngineUpdates = ReturnType<EngineClass['update']>
 const updatesInit = engine.update()
+let wakeLock: WakeLockSentinel | null = null
+const releaseWakeLock = () => {
+  wakeLock?.release().then(() => {
+    wakeLock = null
+  })
+}
 
 const App = () => {
   const [on, setOn] = useState(true)
+  const togglePlay = () => setOn(value => !value)
   const [sets, forceUpdate] = useState<EngineUpdates>(updatesInit)
   const [theme, setTheme] = useState<Theme>(initTheme)
   const themeToggle = () => {
@@ -65,7 +57,16 @@ const App = () => {
   }
 
   useLayoutEffect(() => {
-    if (!on) return
+    if (!on) {
+      releaseWakeLock()
+      return
+    }
+
+    if ('wakeLock' in navigator) {
+      navigator.wakeLock.request('screen').then(lock => {
+        wakeLock = lock
+      })
+    }
 
     let shouldUpdate = true
     const cancel = () => {
@@ -80,19 +81,57 @@ const App = () => {
     }
     tick()
 
-    return cancel
+    return () => {
+      cancel()
+      releaseWakeLock()
+    }
   }, [on])
 
-  const { population: maxPopulation } = getConfig()
   const { leader, hasOnlyAi, hasEnvAi, hasAi, watchIndividual, hasKeys } = engine
 
-  const random = () => {
-    clearSets()
-    createSets(undefined, maxPopulation * 3)
-  }
+  // callbacks
+  const handleChangeController: (side: Side) => ChangeEventHandler<HTMLSelectElement> =
+    side => e => {
+      const key = e.target.value
+      const controller = !!savedPlayers[key] ? savedPlayers[key] : (key as Controller)
 
-  if (leader && !sets.includes(leader?.set)) {
-    sets.push(leader.set)
+      const leftController = side === 'left' ? controller : engine.leftController
+      const rightController = side === 'right' ? controller : engine.rightController
+      setControllers(leftController, rightController)
+      forceUpdate([...sets])
+    }
+  const random = () => {
+    engine.random()
+    forceUpdate([...sets])
+  }
+  const newGeneration = () => {
+    engine.generateGeneration()
+    forceUpdate([...sets])
+  }
+  const mutate = () => {
+    engine.mutateLeader()
+    forceUpdate([...sets])
+  }
+  useKey('Space', togglePlay, [], true)
+  useKey('KeyR', restart)
+  useKey('KeyE', saveLeader)
+  useKey('KeyM', mutate)
+  useKey('KeyA', random)
+  useKey('KeyT', newGeneration)
+
+  let visibleSets: EngineUpdates = []
+  for (let index = 0; index < sets.length; index++) {
+    const set = sets[index]
+    if (!set.survived) {
+      visibleSets.push(set)
+    }
+
+    if (visibleSets.length >= VISIBLE_SETS_COUNT) {
+      if (leader && !visibleSets.includes(leader?.set)) {
+        visibleSets.push(leader.set)
+      }
+      break
+    }
   }
 
   const envFields: EnvFields | null = hasOnlyAi
@@ -150,8 +189,13 @@ const App = () => {
               </select>
 
               <div className={s.controls}>
-                <button onClick={() => setOn(value => !value)}>{on ? 'Pause' : 'Play'}</button>
-                <button onClick={restart}>Restart</button>
+                <button onClick={togglePlay}>
+                  <u> </u>
+                  {on ? 'Pause' : 'Play'}
+                </button>
+                <button onClick={restart}>
+                  <u>R</u>estart
+                </button>
               </div>
 
               <select
@@ -173,53 +217,64 @@ const App = () => {
 
               <span className={cx(s.score, s.right)}>{leader?.set.players[1].score ?? 0}</span>
             </div>
-            <Board sets={sets} leader={leader?.player} leaderSet={leader?.set} />
+            <Board sets={visibleSets} leader={leader?.player} leaderSet={leader?.set} />
           </div>
 
           <div className={cx(s.col)}>
             <div className={cx(s.row, s.gap50)}>
-              {hasAi && (
+              {hasAi && !hasKeys && (
                 <div className={s.intelligence}>
-                  <p className={s.title}>
-                    Gen.sib{' '}
-                    {leader?.set.players[1].brain && (
-                      <>
-                        #{leader?.player.brain?.generation}.{leader?.player.brain?.siblingIndex}
-                      </>
-                    )}
-                  </p>
-
-                  {leader?.set.players[1].brain && (
+                  {leader?.set.players[0].brain && (
                     <>
+                      <p className={s.title}>Gen.sib {leader?.set.players[0].brain?.getKey()}</p>
                       <div className={s.subtitle}>
                         {hasAi && !hasOnlyAi && (
                           <p className={s.motivationScore}>
-                            stimulation: {Math.round(leader?.player.stimulation)}
+                            stimulation: {Math.round(leader?.set.players[0].stimulation)}
                           </p>
                         )}
-                        <p>threshold: {getNumberString(leader?.player.brain?.threshold)}</p>
+                      </div>
+                      <Intelligence intelligence={leader?.set.players[0].brain} headers={headers} />
+                    </>
+                  )}
+
+                  {leader?.set.players[1].brain && (
+                    <>
+                      <p className={s.title}>Gen.sib {leader?.set.players[1].brain?.getKey()}</p>
+                      <div className={s.subtitle}>
+                        {hasAi && !hasOnlyAi && (
+                          <p className={s.motivationScore}>
+                            stimulation: {Math.round(leader?.set.players[1].stimulation)}
+                          </p>
+                        )}
                       </div>
 
                       <Intelligence intelligence={leader?.set.players[1].brain} headers={headers} />
                     </>
                   )}
 
-                  <div className={s.controls}>
-                    <button
-                      onClick={watchLeaderToggle}
-                      className={cx({ [s.unwatch]: watchIndividual })}
-                    >
-                      Watch
-                    </button>
-                    <button onClick={() => killSet(leader?.player.brain?.generation, leader?.set)}>
-                      Kill
-                    </button>
-                    <button onClick={() => createSets(leader?.player.brain)}>Mutate</button>
-                  </div>
-                  <div className={s.controls}>
-                    <button onClick={loadLeader}>Load</button>
-                    <button onClick={saveLeader}>Save</button>
-                  </div>
+                  {hasEnvAi && (
+                    <>
+                      <div className={s.controls}>
+                        <button
+                          onClick={watchLeaderToggle}
+                          className={cx({ [s.unwatch]: watchIndividual })}
+                        >
+                          Watch
+                        </button>
+                        <button onClick={() => killSet(leader?.set)}>Kill</button>
+                        <button onClick={mutate}>
+                          <u>M</u>utate
+                        </button>
+                      </div>
+                      <div className={s.controls}>
+                        <button onClick={loadLeader}>Load</button>
+                        <button onClick={saveLeader}>
+                          Sav<u>e</u>
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -229,12 +284,24 @@ const App = () => {
 
                   <Environment fields={envFields} />
 
-                  <p className={s.title}>Sibling number</p>
+                  {!hasKeys && (
+                    <>
+                      <p className={s.title}>Sibling number</p>
 
-                  <SiblingsMonitor engine={engine} />
-                  <div className={s.controls}>
-                    <button onClick={random}>Random</button>
-                  </div>
+                      <SiblingsMonitor engine={engine} />
+                      <div className={s.controls}>
+                        <button onClick={random}>
+                          R<u>a</u>ndom
+                        </button>
+                        <button
+                          onClick={newGeneration}
+                          disabled={engine.statistic.survivedCount < 2}
+                        >
+                          Genera<u>t</u>e
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>

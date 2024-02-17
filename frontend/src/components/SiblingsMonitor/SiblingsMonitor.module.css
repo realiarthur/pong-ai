@@ -35,7 +35,8 @@
       justify-content: space-between;
     }
 
-    .monitorItemCountLine {
+    .monitorItemCountLine,
+    .monitorSurvivedCountLine {
       position: absolute;
       left: 0;
       top: 0;
@@ -46,7 +47,15 @@
       opacity: 0.5;
     }
 
+    .survivedNumber {
+      color: var(--c-gold);
+    }
+
     &.total {
+      font-weight: bold;
+    }
+
+    &.load {
       font-weight: bold;
 
       .monitorItemCountLine {

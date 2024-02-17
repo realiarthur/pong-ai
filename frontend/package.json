@@ -10,10 +10,12 @@
     "classes": "^1.0.0",
     "classnames": "^2.3.2",
     "react": "^18.2.0",
+    "react-debounce-render": "^8.0.2",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@types/dom-screen-wake-lock": "^1.0.3",
     "@types/node": "^16.18.50",
     "@types/react": "^18.2.21",
     "@types/react-dom": "^18.2.7",

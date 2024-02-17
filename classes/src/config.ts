@@ -3,7 +3,7 @@ let config = {
   KEYBOARD_REPEAT_TIMEOUT: 10,
 
   boardWidth: 629,
-  boardHeight: 391,
+  boardHeight: 421,
   boardPadding: 40,
 
   ballDiameter: 15,
@@ -13,9 +13,9 @@ let config = {
 
   playerSpeed: 8,
 
-  ballSpeed: 12,
-  ballSpeedEnvStep: 0.3,
-  ballSpeedEnvFinal: 16,
+  ballSpeed: 13,
+  ballSpeedEnvStep: 0.35,
+  ballSpeedEnvFinal: 20,
   maxMutation: 0.1,
   maxMutationEnvStep: -0.003,
   maxMutationEnvFinal: 0.01,
@@ -26,24 +26,23 @@ let config = {
   move: 0,
   moveEnvStep: -2,
   moveEnvFinal: -30,
-  bounce: 1000,
-  bounceEnvStep: -50,
+  bounce: 1500,
+  bounceEnvStep: -100,
   bounceEnvFinal: 300,
-  fail: -500,
-  failEnvStep: -500,
+  fail: -1000,
+  failEnvStep: -1000,
   failEnvFinal: -20000,
   middle: 0,
   middleEnvStep: 1,
-  middleEnvFinal: 5,
+  middleEnvFinal: 10,
 
   population: 5000,
   divisionThreshold: 10000,
   deathThreshold: -10000,
   divisionScore: 10,
 
-  maxThreshold: 0.5,
   maxInitBias: 0.5,
-  populationIncreaseMulti: 0.1,
+  populationIncreaseMulti: 0.01,
 }
 
 export type Config = typeof config

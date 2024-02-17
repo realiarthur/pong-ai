@@ -31,7 +31,6 @@ export class PlayerClass {
   score: number = 0
   stimulation: number = 0
   energy = 1
-  dead = false
   previousMove = -1 | 1
 
   constructor({ side, height = paddleHeight, controller = 'keys', brain }: PlayerClassProps) {
@@ -44,10 +43,6 @@ export class PlayerClass {
     this.yBottom = this.yTop + this.height
     this.controller = controller
     this.brain = brain
-  }
-
-  kill = () => {
-    this.dead = true
   }
 
   refill = () => {
@@ -68,10 +63,10 @@ export class PlayerClass {
       this.stimulate('move', directionAbs)
     }
 
-    // if (this.previousMove !== direction) {
-    //   this.stimulate('move')
-    //   this.previousMove = direction
-    // }
+    if (this.previousMove !== direction) {
+      this.stimulate('move')
+      this.previousMove = direction
+    }
 
     if ((this.yTop <= 0 && direction < 0) || (this.yBottom >= boardHeight && direction > 0)) return
 
@@ -82,16 +77,11 @@ export class PlayerClass {
     this.yBottom = this.yTop + this.height
   }
 
-  stimulate = (typeOrValue: StimulateType | number, multi: number = 1) => {
+  stimulate = (type: StimulateType, multi: number = 1) => {
     if (this.controller !== 'ai') return
 
-    if (typeof typeOrValue === 'number') {
-      this.stimulation = this.stimulation + typeOrValue
-      return
-    }
-
     const config = getConfig()
-    this.stimulation = this.stimulation + config[typeOrValue as keyof Config] * multi
+    this.stimulation = this.stimulation + config[type as keyof Config] * multi
   }
 
   addScore = () => {

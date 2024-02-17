@@ -5,10 +5,8 @@ import s from './SiblingsMonitor.module.css'
 
 const SiblingsMonitor: FC<{ engine: EngineClass }> = ({ engine }) => {
   const {
-    population,
-    generationsStat,
+    statistic: { survivedCount, population, generationsStat, getLastGenerationNumber },
     watchGeneration,
-    getLastGenerationWithCount,
     setWatchGeneration,
   } = engine
   const { population: maxPopulation } = getConfig()
@@ -17,7 +15,11 @@ const SiblingsMonitor: FC<{ engine: EngineClass }> = ({ engine }) => {
     setWatchGeneration(number)
   }
 
-  const currentWatchGeneration = watchGeneration ?? getLastGenerationWithCount()
+  const currentWatchGeneration =
+    watchGeneration ??
+    getLastGenerationNumber(
+      generation => generation.count && generation.survived < generation.count,
+    )
 
   return (
     <div className={s.siblingsMonitor}>
@@ -29,12 +31,14 @@ const SiblingsMonitor: FC<{ engine: EngineClass }> = ({ engine }) => {
               onClick={getClickHandler(generationNumber)}
             >
               <div
-                className={s.monitorItemCountLine}
-                style={{ width: `calc(100% * ${values.count / population})` }}
+                className={s.monitorSurvivedCountLine}
+                style={{ width: `calc(100% * ${values.survived / values.count})` }}
               ></div>
               <p className={s.monitorItemTitle}>
                 <span>generation #{generationNumber}</span>
-                <span>{values.count}</span>
+                <span>
+                  <span className={s.survivedNumber}>{values.survived}</span> / {values.count}
+                </span>
               </p>
             </div>
           )}
@@ -47,11 +51,26 @@ const SiblingsMonitor: FC<{ engine: EngineClass }> = ({ engine }) => {
       >
         <div
           className={s.monitorItemCountLine}
-          style={{ width: `calc(100% * ${population / maxPopulation})` }}
+          style={{ width: `calc(100% * ${survivedCount / population})` }}
         ></div>
         <p className={s.monitorItemTitle}>
           <span>total</span>
-          <span>{population}</span>
+          <span>
+            <span className={s.survivedNumber}>{survivedCount}</span> / {population}
+          </span>
+        </p>
+      </div>
+
+      <div className={cx(s.item, s.load)} onClick={getClickHandler(false)}>
+        <div
+          className={s.monitorItemCountLine}
+          style={{ width: `calc(100% * ${population / maxPopulation})` }}
+        ></div>
+        <p className={s.monitorItemTitle}>
+          <span>load</span>
+          <span>
+            {population} / {maxPopulation}
+          </span>
         </p>
       </div>
     </div>

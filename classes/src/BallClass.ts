@@ -63,14 +63,11 @@ export class BallClass {
   respawn = (center: boolean = false) => {
     this.serve = true
     this.x = initX
-    this.y = center ? initY : this.y ?? Math.random() * boardHeight
-    if (this.angle) {
-      this.setAngle((this.angle + 0.2) * 1.2)
-    } else {
-      const initAngle = (Math.PI * (Math.random() - 0.5)) / 1.5
-      const mirror = Math.sign(Math.random() - 0.5) > 0
-      this.setAngle(mirror ? mirrorAngle(initAngle) : initAngle)
-    }
+    this.y = Math.random() * boardHeight
+
+    const initAngle = (Math.PI * (Math.random() - 0.5)) / 2
+    const mirror = this.angle ? Math.abs(this.angle / Math.PI) > 0.5 : Math.random() > 0.5
+    this.setAngle(mirror ? mirrorAngle(initAngle) : initAngle)
   }
 
   setAngle = (angle: number) => {
@@ -78,16 +75,17 @@ export class BallClass {
     this.angle = angle
     const cos = Math.cos(angle)
 
-    this.angleLeft = angle / Math.PI
-    this.angleRight = normalizeAngle(mirrorAngle(angle)) / Math.PI
-
     const xDirection = Math.sign(cos)
-    const vx = xDirection * this.xvAbs
-    this.vx = this.serve ? vx / 2 : vx
-    this.vxPart = xDirection * sin45
+    const vxAbs = this.serve ? this.xvAbs / 2.5 : this.xvAbs
+    this.vx = xDirection * vxAbs
     const vy = this.speed * Math.sin(angle)
     this.vy = this.serve ? vy / 2.5 : vy
-    this.vyPart = Math.sin(angle)
+
+    const realAngle = Math.atan(this.vy / vxAbs)
+    this.vxPart = xDirection * Math.cos(realAngle)
+    this.vyPart = Math.sin(realAngle)
+    // this.angleLeft = realAngle / Math.PI
+    // this.angleRight = normalizeAngle(mirrorAngle(realAngle)) / Math.PI
   }
 
   update = () => {

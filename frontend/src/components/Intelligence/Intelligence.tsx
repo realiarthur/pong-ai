@@ -3,6 +3,7 @@ import { Intelligence as IntelligenceClass } from 'classes'
 import cx from 'classnames'
 import s from './Intelligence.module.css'
 import { getNumberString } from 'utils/getNumberString'
+import debounceRender from 'react-debounce-render'
 
 const NEURON_WIDTH = 35
 const NEURON_HEIGHT = 16
@@ -89,6 +90,8 @@ const Intelligence: FC<{
   headers: string[]
   className?: string
 }> = ({ intelligence: { values, biases, getOutputWeights }, headers, className }) => {
+  if (!values.length) return null
+
   return (
     <svg
       className={cx(s.intelligence, className)}
@@ -131,4 +134,9 @@ const Intelligence: FC<{
   )
 }
 
-export default Intelligence
+const DebouncedIntelligence = debounceRender(Intelligence, 100, {
+  leading: true,
+  maxWait: 100,
+})
+
+export default DebouncedIntelligence

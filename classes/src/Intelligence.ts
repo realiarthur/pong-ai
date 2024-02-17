@@ -1,5 +1,5 @@
 import { getConfig } from './config'
-const { maxThreshold, maxInitBias } = getConfig()
+const { maxInitBias } = getConfig()
 
 // inputs: [
 //  player.yTop,
@@ -49,7 +49,6 @@ const limiter = (value: number, limit = 1) =>
   value > limit ? limit : value < -limit ? -limit : value
 
 const signRandom = (maxAbs = 1) => 2 * (Math.random() - 0.5) * maxAbs
-const thresholdRandom = () => Math.random() * maxThreshold
 
 const weighedSum = (inputs: Layer, weights: Layer) =>
   inputs.reduce((sum, inputValue, inputIndex) => {
@@ -68,7 +67,6 @@ type IntelligenceProps = {
   siblingIndex?: number
   weights?: Weights
   biases?: Layer[]
-  threshold?: number
   layersConfig?: number[]
 }
 
@@ -78,22 +76,13 @@ export class Intelligence {
   siblingIndex: number
   weights: number[][][] = []
   biases: Layer[] = []
-  threshold: number
   layersConfig = LAYERS_CONFIG
 
-  constructor({
-    generation,
-    siblingIndex,
-    weights,
-    threshold,
-    biases,
-    layersConfig,
-  }: IntelligenceProps = {}) {
+  constructor({ generation, siblingIndex, weights, biases, layersConfig }: IntelligenceProps = {}) {
     this.generation = generation ?? 1
     this.siblingIndex = siblingIndex || 0
     this.weights = weights ?? this.mapWeights(() => signRandom())
     this.biases = biases ?? this.mapLayers(() => signRandom(maxInitBias))
-    this.threshold = threshold ?? thresholdRandom()
     this.layersConfig = layersConfig ?? LAYERS_CONFIG
   }
 
@@ -109,12 +98,16 @@ export class Intelligence {
         const mutatedBias = bias ? bias + signRandom(maxInitBias) * maxMutation : 0
         return mutatedBias
       }),
-      threshold: limiter(this.threshold + signRandom() * maxMutation * maxThreshold),
       siblingIndex,
     })
   }
 
-  static crossover = (parent1: Intelligence, parent2: Intelligence, siblingIndex: number) => {
+  static crossover = (
+    parent1: Intelligence,
+    parent2: Intelligence,
+    generation: number,
+    siblingIndex: number,
+  ) => {
     const weightChild2: Layer[][] = []
     const weightChild1 = parent1.mapLayers<Layer>(({ weights, layerIndex, neuronIndex }) => {
       weightChild2[layerIndex] = weightChild2[layerIndex] || []
@@ -140,23 +133,19 @@ export class Intelligence {
       return values[0]
     })
 
-    const [thresholdChild1, thresholdChild2] = randomChoice(parent1.threshold, parent2.threshold)
-
     return [
       new Intelligence({
-        generation: Math.max(parent1.generation, parent2.generation) + 1,
+        generation: generation,
         weights: weightChild1,
         biases: biasesChild1,
-        threshold: thresholdChild1,
-        siblingIndex, // TODOC
+        siblingIndex,
       }),
 
       new Intelligence({
-        generation: Math.max(parent1.generation, parent2.generation) + 1,
+        generation: generation,
         weights: weightChild2,
         biases: biasesChild2,
-        threshold: thresholdChild2,
-        siblingIndex: siblingIndex + 1, // TODOC
+        siblingIndex: siblingIndex + 1,
       }),
     ]
   }
@@ -204,19 +193,16 @@ export class Intelligence {
     this.values = this.mapLayers(({ bias, weights, prevCalcLayer, layerIndex, neuronIndex }) => {
       const isInput = layerIndex === 0 || !prevCalcLayer || !weights.length
       if (isInput) {
+        // if (neuronIndex === 3 && this.values[0]) return this.values[0][1]
+        // if (neuronIndex === 4 && this.values[0]) return this.values[0][2]
+
         return inputs[neuronIndex] ?? 0
       }
-
-      const isOutput = layerIndex === this.layersConfig.length - 1
 
       // tanh + bias * inputs
       // const sum = weighedSum(prevCalcLayer, weights)
       // const biased = sum + (bias || 0)
       // const activation = tanh(biased)
-
-      // if (isOutput) {
-      //   return thresholdActivation(activation)
-      // }
 
       // linear + bias
       const sum = weighedSum(prevCalcLayer, weights)
@@ -237,12 +223,11 @@ export class Intelligence {
   }
 
   serialize = () => {
-    const { generation, siblingIndex, weights, threshold, biases, layersConfig } = this
+    const { generation, siblingIndex, weights, biases, layersConfig } = this
     return JSON.stringify({
       generation,
       siblingIndex,
       weights,
-      threshold,
       biases,
       layersConfig,
     })
