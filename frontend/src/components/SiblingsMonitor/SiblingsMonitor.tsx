@@ -68,9 +68,6 @@ const SiblingsMonitor: FC<{ engine: EngineClass }> = ({ engine }) => {
         ></div>
         <p className={s.monitorItemTitle}>
           <span>load</span>
-          <span>
-            {population} / {maxPopulation}
-          </span>
         </p>
       </div>
     </div>

@@ -6,7 +6,7 @@ import Intelligence from 'components/Intelligence/Intelligence'
 import Environment, { EnvFields } from 'components/Environment/Environment'
 import cx from 'classnames'
 import SiblingsMonitor from 'components/SiblingsMonitor/SiblingsMonitor'
-import { useKey } from 'utils/useKey'
+import Button, { Tab } from 'components/Button/Button'
 
 const { VISIBLE_SETS_COUNT } = getConfig()
 
@@ -15,16 +15,8 @@ const initTheme: Theme = 'dark'
 document.body.className = initTheme
 
 const engine = new EngineClass()
-const {
-  loadLeader,
-  saveLeader,
-  restart,
-  killSet,
-  update,
-  setControllers,
-  watchLeaderToggle,
-  savedPlayers,
-} = engine
+const { loadLeader, saveLeader, killSet, update, setControllers, watchLeaderToggle, savedPlayers } =
+  engine
 
 setControllers('env', 'ai')
 
@@ -48,7 +40,10 @@ const releaseWakeLock = () => {
 const App = () => {
   const [on, setOn] = useState(true)
   const togglePlay = () => setOn(value => !value)
-  const [sets, forceUpdate] = useState<EngineUpdates>(updatesInit)
+  const [sets, setSets] = useState<EngineUpdates>(updatesInit)
+  const forceUpdate = () => {
+    setSets(sets => [...sets])
+  }
   const [theme, setTheme] = useState<Theme>(initTheme)
   const themeToggle = () => {
     const neeValue = theme === 'dark' ? 'light' : 'dark'
@@ -76,7 +71,7 @@ const App = () => {
     const tick = () => {
       if (!shouldUpdate) return
 
-      forceUpdate(update())
+      setSets(update())
       requestAnimationFrame(tick)
     }
     tick()
@@ -89,35 +84,30 @@ const App = () => {
 
   const { leader, hasOnlyAi, hasEnvAi, hasAi, watchIndividual, hasKeys } = engine
 
-  // callbacks
-  const handleChangeController: (side: Side) => ChangeEventHandler<HTMLSelectElement> =
-    side => e => {
-      const key = e.target.value
-      const controller = !!savedPlayers[key] ? savedPlayers[key] : (key as Controller)
-
-      const leftController = side === 'left' ? controller : engine.leftController
-      const rightController = side === 'right' ? controller : engine.rightController
-      setControllers(leftController, rightController)
-      forceUpdate([...sets])
-    }
-  const random = () => {
-    engine.random()
-    forceUpdate([...sets])
-  }
-  const newGeneration = () => {
-    engine.generateGeneration()
-    forceUpdate([...sets])
-  }
-  const mutate = () => {
-    engine.mutateLeader()
-    forceUpdate([...sets])
-  }
-  useKey('Space', togglePlay, [], true)
-  useKey('KeyR', restart)
-  useKey('KeyE', saveLeader)
-  useKey('KeyM', mutate)
-  useKey('KeyA', random)
-  useKey('KeyT', newGeneration)
+  const envFields: EnvFields | null =
+    // hasOnlyAi
+    //   ? [
+    //       ['_header', ['current', 'step', 'final']],
+    //       ['speed', ['ballSpeed', 'ballSpeedEnvStep', 'ballSpeedEnvFinal']],
+    //       ['mutation', ['maxMutation', 'maxMutationEnvStep', 'maxMutationEnvFinal']],
+    //       ['_header', ['max', 'score']],
+    //       ['population', ['population', 'divisionScore']],
+    //     ]
+    // :
+    hasEnvAi
+      ? [
+          ['_header', ['current', 'step', 'final']],
+          ['bounce', ['bounce', 'bounceEnvStep', 'bounceEnvFinal']],
+          ['fail', ['fail', 'failEnvStep', 'failEnvFinal']],
+          ['move', ['move', 'moveEnvStep', 'moveEnvFinal']],
+          ['middle', ['middle', 'middleEnvStep', 'middleEnvFinal']],
+          ['speed', ['ballSpeed', 'ballSpeedEnvStep', 'ballSpeedEnvFinal']],
+          ['mutation', ['maxMutation', 'maxMutationEnvStep', 'maxMutationEnvFinal']],
+          ['wall min°', ['wallMinAngle', 'wallMinAngleEnvStep', 'wallMinAngleEnvFinal']],
+          ['_header', ['max', 'birth', 'death']],
+          ['population', ['population', 'divisionThreshold', 'deathThreshold']],
+        ]
+      : [['speed', ['ballSpeed']]]
 
   let visibleSets: EngineUpdates = []
   for (let index = 0; index < sets.length; index++) {
@@ -134,34 +124,59 @@ const App = () => {
     }
   }
 
-  const envFields: EnvFields | null = hasOnlyAi
-    ? [
-        ['_header', ['current', 'step', 'final']],
-        ['speed', ['ballSpeed', 'ballSpeedEnvStep', 'ballSpeedEnvFinal']],
-        ['mutation', ['maxMutation', 'maxMutationEnvStep', 'maxMutationEnvFinal']],
-        ['_header', ['max', 'score']],
-        ['population', ['population', 'divisionScore']],
-      ]
-    : hasEnvAi
-    ? [
-        ['_header', ['current', 'step', 'final']],
-        ['bounce', ['bounce', 'bounceEnvStep', 'bounceEnvFinal']],
-        ['fail', ['fail', 'failEnvStep', 'failEnvFinal']],
-        ['move', ['move', 'moveEnvStep', 'moveEnvFinal']],
-        ['middle', ['middle', 'middleEnvStep', 'middleEnvFinal']],
-        ['speed', ['ballSpeed', 'ballSpeedEnvStep', 'ballSpeedEnvFinal']],
-        ['mutation', ['maxMutation', 'maxMutationEnvStep', 'maxMutationEnvFinal']],
-        ['wall min°', ['wallMinAngle', 'wallMinAngleEnvStep', 'wallMinAngleEnvFinal']],
-        ['_header', ['max', 'birth', 'death']],
-        ['population', ['population', 'divisionThreshold', 'deathThreshold']],
-      ]
-    : [['speed', ['ballSpeed']]]
+  // callbacks
+  const handleChangeController: (side: Side) => (key: string) => void =
+    side => (key: Controller | string) => {
+      const controller = !!savedPlayers[key] ? savedPlayers[key] : (key as Controller)
+
+      const leftController = side === 'left' ? controller : engine.leftController
+      const rightController = side === 'right' ? controller : engine.rightController
+      setControllers(leftController, rightController)
+      forceUpdate()
+    }
+  const random = () => {
+    engine.random()
+    forceUpdate()
+  }
+  const newGeneration = () => {
+    engine.generateGeneration()
+    forceUpdate()
+  }
+  const mutate = () => {
+    engine.mutateLeader()
+    forceUpdate()
+  }
+  const restart = () => {
+    engine.restart()
+    forceUpdate()
+  }
+  const compare = () => {
+    const keys = Object.keys(savedPlayers)
+    handleChangeController('left')(keys[keys.length - 1])
+    handleChangeController('right')(keys[keys.length - 2] ?? keys[keys.length - 1])
+  }
+  const play = () => {
+    const keys = Object.keys(savedPlayers)
+    handleChangeController('left')('keys')
+    handleChangeController('right')(keys[keys.length - 1])
+  }
 
   return (
     <div className={cx(s.app)}>
-      <button className={s.theme} onClick={themeToggle}>
+      <Button className={s.theme} onClick={themeToggle}>
         {theme}
-      </button>
+      </Button>
+      <div className={s.modeControls}>
+        <Tab active={hasEnvAi} onClick={() => handleChangeController('left')('env')}>
+          train
+        </Tab>
+        <Tab active={hasOnlyAi} onClick={compare} disabled={!Object.keys(savedPlayers)}>
+          compare
+        </Tab>
+        <Tab active={hasKeys} onClick={play} disabled={!Object.keys(savedPlayers)}>
+          play
+        </Tab>
+      </div>
       <div className={s.container}>
         <div className={s.main}>
           <div className={s.boardContainer}>
@@ -174,7 +189,7 @@ const App = () => {
                     ? engine.leftController
                     : engine.leftController.getKey()
                 }
-                onChange={handleChangeController('left')}
+                onChange={e => handleChangeController('left')(e.target.value)}
               >
                 {controllers.map((controller, index) => (
                   <option key={index} value={controller}>
@@ -189,13 +204,13 @@ const App = () => {
               </select>
 
               <div className={s.controls}>
-                <button onClick={togglePlay}>
+                <Button onClick={togglePlay} keyCode='Space'>
                   <u> </u>
                   {on ? 'Pause' : 'Play'}
-                </button>
-                <button onClick={restart}>
+                </Button>
+                <Button onClick={restart} keyCode='KeyR'>
                   <u>R</u>estart
-                </button>
+                </Button>
               </div>
 
               <select
@@ -205,7 +220,7 @@ const App = () => {
                     ? engine.rightController
                     : engine.rightController.getKey()
                 }
-                onChange={handleChangeController('right')}
+                onChange={e => handleChangeController('right')(e.target.value)}
               >
                 <option value={'ai'}>ai</option>
                 {Object.keys(savedPlayers).map(key => (
@@ -237,7 +252,6 @@ const App = () => {
                       <Intelligence intelligence={leader?.set.players[0].brain} headers={headers} />
                     </>
                   )}
-
                   {leader?.set.players[1].brain && (
                     <>
                       <p className={s.title}>Gen.sib {leader?.set.players[1].brain?.getKey()}</p>
@@ -252,26 +266,25 @@ const App = () => {
                       <Intelligence intelligence={leader?.set.players[1].brain} headers={headers} />
                     </>
                   )}
-
                   {hasEnvAi && (
                     <>
                       <div className={s.controls}>
-                        <button
+                        <Button
                           onClick={watchLeaderToggle}
                           className={cx({ [s.unwatch]: watchIndividual })}
                         >
                           Watch
-                        </button>
-                        <button onClick={() => killSet(leader?.set)}>Kill</button>
-                        <button onClick={mutate}>
+                        </Button>
+                        <Button onClick={() => killSet(leader?.set)}>Kill</Button>
+                        <Button onClick={mutate} keyCode='KeyM'>
                           <u>M</u>utate
-                        </button>
+                        </Button>
                       </div>
                       <div className={s.controls}>
-                        <button onClick={loadLeader}>Load</button>
-                        <button onClick={saveLeader}>
+                        <Button onClick={loadLeader}>Load</Button>
+                        <Button onClick={saveLeader} keyCode='KeyE'>
                           Sav<u>e</u>
-                        </button>
+                        </Button>
                       </div>
                     </>
                   )}
@@ -284,21 +297,22 @@ const App = () => {
 
                   <Environment fields={envFields} />
 
-                  {!hasKeys && (
+                  {hasEnvAi && (
                     <>
                       <p className={s.title}>Sibling number</p>
 
                       <SiblingsMonitor engine={engine} />
                       <div className={s.controls}>
-                        <button onClick={random}>
+                        <Button onClick={random} keyCode='KeyA'>
                           R<u>a</u>ndom
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={newGeneration}
                           disabled={engine.statistic.survivedCount < 2}
+                          keyCode='KeyT'
                         >
                           Genera<u>t</u>e
-                        </button>
+                        </Button>
                       </div>
                     </>
                   )}

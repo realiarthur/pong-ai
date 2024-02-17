@@ -117,7 +117,7 @@ export class EngineClass {
   restart = () => {
     this.sets.map(set => {
       set.players.map(player => player.reset())
-      set.ball.respawn(true)
+      set.ball.reset()
     })
   }
 

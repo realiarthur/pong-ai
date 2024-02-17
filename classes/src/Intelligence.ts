@@ -68,6 +68,7 @@ type IntelligenceProps = {
   weights?: Weights
   biases?: Layer[]
   layersConfig?: number[]
+  birthTime?: number
 }
 
 export class Intelligence {
@@ -77,13 +78,22 @@ export class Intelligence {
   weights: number[][][] = []
   biases: Layer[] = []
   layersConfig = LAYERS_CONFIG
+  birthTime: number
 
-  constructor({ generation, siblingIndex, weights, biases, layersConfig }: IntelligenceProps = {}) {
+  constructor({
+    generation,
+    siblingIndex,
+    weights,
+    biases,
+    layersConfig,
+    birthTime,
+  }: IntelligenceProps = {}) {
     this.generation = generation ?? 1
     this.siblingIndex = siblingIndex || 0
     this.weights = weights ?? this.mapWeights(() => signRandom())
     this.biases = biases ?? this.mapLayers(() => signRandom(maxInitBias))
     this.layersConfig = layersConfig ?? LAYERS_CONFIG
+    this.birthTime = birthTime ?? Date.now()
   }
 
   mutate = (siblingIndex: number) => {
@@ -223,20 +233,21 @@ export class Intelligence {
   }
 
   serialize = () => {
-    const { generation, siblingIndex, weights, biases, layersConfig } = this
+    const { generation, siblingIndex, weights, biases, layersConfig, birthTime } = this
     return JSON.stringify({
       generation,
       siblingIndex,
       weights,
       biases,
       layersConfig,
+      birthTime,
     })
   }
 
   static deserialize = (json?: string | null) => {
     if (!json) return
     const values = JSON.parse(json) as IntelligenceProps
-    return new Intelligence(values)
+    return new Intelligence({ birthTime: 0, ...values }) // TODOC birthTime
   }
 
   getKey = () => `#${this.generation}.${this.siblingIndex}`

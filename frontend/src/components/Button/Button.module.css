@@ -1,0 +1,44 @@
+.button {
+  background: none;
+  outline: none;
+  color: var(--c-main);
+  border-radius: 2px;
+  border: 1px transparent solid;
+  padding: 8px 16px;
+  cursor: pointer;
+  text-transform: lowercase;
+  transition: border 0.1s ease-in-out, color 0.1s ease-in-out;
+}
+
+.button:hover {
+  border: 1px var(--c-main) solid;
+}
+
+.button:active {
+  color: var(--c-active);
+  border: 1px var(--c-main) solid;
+  box-shadow: #0003 0 5px 10px 0;
+}
+
+.button:disabled {
+  color: var(--c-muted);
+}
+
+.button:disabled:hover,
+.button:disabled:active {
+  border-color: var(--c-muted);
+}
+
+.tab {
+  border: none;
+  border-radius: 0;
+}
+
+.tab:hover {
+  border: none;
+  border-bottom: 1px var(--c-muted) solid;
+}
+
+.tab.active {
+  border-bottom: 1px var(--c-main) solid;
+}

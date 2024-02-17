@@ -1,12 +1,12 @@
 import { useEffect } from 'react'
 
 export const useKey = (
-  keyCode: string,
+  keyCode: string | undefined,
   callback: () => void,
-  deps = [],
   preventDefault = false,
 ) => {
   useEffect(() => {
+    if (!keyCode) return
     const handle = (e: KeyboardEvent) => {
       if (e.code === keyCode) {
         if (preventDefault) {
@@ -21,5 +21,5 @@ export const useKey = (
     return () => {
       window.removeEventListener('keydown', handle)
     }
-  }, [keyCode, ...deps])
+  }, [keyCode])
 }

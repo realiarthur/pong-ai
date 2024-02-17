@@ -40,6 +40,7 @@ const Environment: FC<{ fields: EnvFields }> = ({ fields }) => {
               <>
                 {keys.map(key => (
                   <input
+                    type='number'
                     key={key}
                     name={key}
                     defaultValue={values[key as keyof Config]}

@@ -6,5 +6,5 @@ export const getSavedPlayers = () =>
       .filter(([key]) => key.startsWith('leader'))
       .map(([key, value]) => [key.replace('leader', ''), Intelligence.deserialize(value)] as const)
       .filter((value): value is [string, Intelligence] => !!value[0] && !!value[1])
-      .sort((a, b) => a[1].generation - b[1].generation),
+      .sort((a, b) => a[1].birthTime - b[1].birthTime),
   )
