@@ -68,7 +68,7 @@ export class BallClass {
   respawn = (center: boolean = false) => {
     this.serve = true
     this.x = initX
-    this.y = initY
+    this.y = Math.random() * boardHeight
 
     const initAngle = (Math.PI * (Math.random() - 0.5)) / 2
     const mirror = this.angle ? Math.abs(this.angle / Math.PI) > 0.5 : Math.random() > 0.5
