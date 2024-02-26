@@ -11,7 +11,9 @@ let config = {
   paddleHeight: 75,
   maxBounceAngle: Math.PI / 4.5,
 
-  playerSpeed: 8,
+  playerSpeed: 12,
+  aiSpeed: 8,
+  genePoolThreshold: 0.01,
 
   ballSpeed: 13,
   ballSpeedEnvStep: 0.35,
@@ -23,18 +25,12 @@ let config = {
   wallMinAngleEnvStep: 1,
   wallMinAngleEnvFinal: 40,
 
-  move: 0,
-  moveEnvStep: -2,
-  moveEnvFinal: -30,
   bounce: 1500,
   bounceEnvStep: -100,
   bounceEnvFinal: 300,
   fail: -1000,
   failEnvStep: -1000,
   failEnvFinal: -20000,
-  middle: 0,
-  middleEnvStep: 1,
-  middleEnvFinal: 10,
 
   population: 5000,
   divisionThreshold: 10000,
@@ -76,7 +72,7 @@ export const subscribe = (callback: Callback) => {
   }
 }
 
-export const stimulateTypes = ['bounce', 'move', 'fail', 'middle'] as const
+export const stimulateTypes = ['bounce', 'fail'] as const
 export type StimulateType = (typeof stimulateTypes)[number]
 export const envConfig = [...stimulateTypes, 'ballSpeed', 'maxMutation', 'wallMinAngle'] as const
 

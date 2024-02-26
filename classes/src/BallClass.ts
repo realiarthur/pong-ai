@@ -31,11 +31,9 @@ const mirrorAngle = (angle: number) => {
 
 export class BallClass {
   serve = true
-  x: number = -ballDiameter
-  y: number = -ballDiameter
+  x: number = initX
+  y: number = initY
   angle: number = 0
-  angleLeft: number = 0
-  angleRight: number = 0
   vx: number = 0
   vxPart: number = 0
   xvAbs: number = getVxAbs(initSpeed)
@@ -53,6 +51,7 @@ export class BallClass {
     this.unsubscriber = subscribe(config => {
       this.speed = config.ballSpeed
       this.xvAbs = getVxAbs(config.ballSpeed)
+      this.setAngle(this.angle)
     })
   }
 
@@ -62,15 +61,15 @@ export class BallClass {
 
   reset = () => {
     this.angle = 0
-    this.respawn()
+    this.respawn(true)
   }
 
   respawn = (center: boolean = false) => {
     this.serve = true
     this.x = initX
-    this.y = Math.random() * boardHeight
+    this.y = center ? initY : this.y
 
-    const initAngle = (Math.PI * (Math.random() - 0.5)) / 2
+    const initAngle = (Math.PI * (Math.random() - 0.5)) / 3
     const mirror = this.angle ? Math.abs(this.angle / Math.PI) > 0.5 : Math.random() > 0.5
     this.setAngle(mirror ? mirrorAngle(initAngle) : initAngle)
   }
@@ -89,8 +88,6 @@ export class BallClass {
     const realAngle = Math.atan(this.vy / vxAbs)
     this.vxPart = xDirection * Math.cos(realAngle)
     this.vyPart = Math.sin(realAngle)
-    // this.angleLeft = realAngle / Math.PI
-    // this.angleRight = normalizeAngle(mirrorAngle(realAngle)) / Math.PI
   }
 
   update = () => {
@@ -118,24 +115,21 @@ export class BallClass {
   }
 
   shouldBounced = (player: PlayerClass, prevX: number) => {
-    if (!(player.yTop <= this.y + ballRadius && player.yBottom >= this.y - ballRadius)) return
+    const offsetSign = player.side === 'left' ? -1 : 1
+    const offset = offsetSign * ballRadius
 
-    let shouldBounce = false
-    if (player.side === 'left') {
-      shouldBounce =
-        this.x - ballRadius <= player.xEdge &&
-        (!(this.x < player.xFail) || prevX - ballRadius > player.xEdge)
-    } else {
-      shouldBounce =
-        this.x + ballRadius >= player.xEdge &&
-        (!(this.x > player.xFail) || prevX + ballRadius < player.xEdge)
-    }
+    const ballSidePoint = this.x + offset
+    const prevBallSidePoint = prevX + offset
 
-    if (shouldBounce) {
-      this.serve = false
-      this.x = player.xEdge + (player.side === 'left' ? ballRadius : -ballRadius)
-    }
+    const sidedIsMore = (a: number, b: number) => (player.side === 'left' ? a > b : a < b)
 
-    return shouldBounce
+    if (sidedIsMore(ballSidePoint, player.xEdge)) return
+    if (sidedIsMore(player.xEdge, prevBallSidePoint) && sidedIsMore(player.xCenter, ballSidePoint))
+      return
+    if (player.yTop > this.y + ballRadius || player.yBottom < this.y - ballRadius) return
+
+    this.serve = false
+    this.x = player.xEdge - offset - offsetSign
+    return true
   }
 }

@@ -2,18 +2,20 @@ import { BallClass } from './BallClass'
 import { PlayerClass } from './PlayerClass'
 import { getConfig } from './config'
 
-const { paddleHeight, paddleWidth, boardPadding, maxBounceAngle, boardWidth, boardHeight } =
-  getConfig()
+const {
+  paddleHeight,
+  paddleWidth,
+  boardPadding,
+  maxBounceAngle,
+  boardWidth,
+  boardHeight,
+  ballDiameter,
+} = getConfig()
 
 const playerMaxY = boardHeight - paddleHeight
 const ballMaxDistance = boardWidth - 2 * (paddleWidth + boardPadding)
-
-const getBounceStimulation = (bounceAngle: number) => {
-  const { move, moveEnvFinal } = getConfig()
-  return 1 + (0.5 * ((move / moveEnvFinal) * bounceAngle)) / maxBounceAngle
-}
-
-const getMiddleStimulation = (y: number) => 1 / (1 + 100 * Math.pow(y - 0.5, 2)) - 0.1
+const paddleMiddle = paddleHeight / 2
+const maxBallIntersectYFromMiddle = paddleMiddle + ballDiameter / 2
 
 export class GameSet {
   ball: BallClass
@@ -50,36 +52,29 @@ export class GameSet {
       players: [left, right],
     } = this
 
+    const prevX = ball.x
     ball.update()
 
     const scaledBallY = ball.y / boardHeight
 
     if (left.brain) {
-      const scaledPlayerY = left.yTop / playerMaxY
-      if (ball.vxPart > 0) {
-        left.stimulate('middle', getMiddleStimulation(scaledPlayerY))
-      }
-
       const direction = left.brain.calculate([
-        (ball.x - left.xEdge) / ballMaxDistance,
-        scaledPlayerY,
+        left.yTop / playerMaxY,
+        (ball.x - left.xCenter) / ballMaxDistance,
         scaledBallY,
         ball.vxPart,
         ball.vyPart,
       ])
 
       left.updatePosition(direction)
+    } else if (left.controller === 'keys') {
+      left.updatePosition(left.keyboardController?.getDirection() || 0)
     }
 
     if (right.brain) {
-      const scaledPlayerY = right.yTop / playerMaxY
-      if (ball.vxPart < 0) {
-        right.stimulate('middle', getMiddleStimulation(scaledPlayerY))
-      }
-
       const direction = right.brain.calculate([
-        (right.xEdge - ball.x) / ballMaxDistance,
-        scaledPlayerY,
+        right.yTop / playerMaxY,
+        (right.xCenter - ball.x) / ballMaxDistance,
         scaledBallY,
         -ball.vxPart,
         ball.vyPart,
@@ -88,38 +83,33 @@ export class GameSet {
       right.updatePosition(direction)
     }
 
-    const getPlayerIntersectAngle = (keeper: PlayerClass) => {
-      if (keeper.controller === 'env') {
-        const { wallMinAngle } = getConfig()
-        const wallMinRadAngle = (wallMinAngle / 180) * Math.PI
-
-        const consumeMinAngle = Math.random() > 0.5
-        const bounceAngle =
-          Math.sign(Math.random() - 0.5) *
-          (consumeMinAngle
-            ? wallMinRadAngle + (maxBounceAngle - wallMinRadAngle) * Math.random()
-            : wallMinRadAngle * Math.random())
-        return keeper.side === 'left' ? bounceAngle : Math.PI - bounceAngle
+    this.players.forEach(keeper => {
+      if (ball.shouldBounced(keeper, prevX)) {
+        const bounceAngle = this.getPlayerIntersectAngle(keeper)
+        ball.setAngle(bounceAngle)
+        keeper.stimulate('bounce')
+        left.refill()
+        right.refill()
       }
-      const relativeIntersectY = keeper.yTop + keeper.height / 2 - this.ball.y
-      const bounceAngle = -(relativeIntersectY / (keeper.height / 2)) * maxBounceAngle
+    })
+  }
+
+  getPlayerIntersectAngle = (keeper: PlayerClass) => {
+    if (keeper.controller === 'env') {
+      const { wallMinAngle } = getConfig()
+      const wallMinRadAngle = (wallMinAngle / 180) * Math.PI
+
+      const consumeMinAngle = Math.random() > 0.5
+      const bounceAngle =
+        Math.sign(Math.random() - 0.5) *
+        (consumeMinAngle
+          ? wallMinRadAngle + (maxBounceAngle - wallMinRadAngle) * Math.random()
+          : wallMinRadAngle * Math.random())
       return keeper.side === 'left' ? bounceAngle : Math.PI - bounceAngle
-    }
-
-    if (ball.shouldBounced(left, ball.x)) {
-      const bounceAngle = getPlayerIntersectAngle(left)
-      ball.setAngle(bounceAngle)
-      left.stimulate('bounce', getBounceStimulation(bounceAngle))
-      left.refill()
-      right.refill()
-    }
-
-    if (ball.shouldBounced(right, ball.x)) {
-      const bounceAngle = getPlayerIntersectAngle(right)
-      ball.setAngle(bounceAngle)
-      right.stimulate('bounce', getBounceStimulation(bounceAngle))
-      left.refill()
-      right.refill()
+    } else {
+      const relativeIntersectY = keeper.yTop + paddleMiddle - this.ball.y
+      const bounceAngle = -(relativeIntersectY / maxBallIntersectYFromMiddle) * maxBounceAngle
+      return keeper.side === 'left' ? bounceAngle : Math.PI - bounceAngle
     }
   }
 }

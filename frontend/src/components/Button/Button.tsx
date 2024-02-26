@@ -2,12 +2,14 @@ import { FC, ButtonHTMLAttributes } from 'react'
 import { useKey } from 'utils/useKey'
 import s from './Button.module.css'
 import cx from 'classnames'
+import { track } from 'utils/amplitude'
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   onClick: () => void
   keyCode?: string
   preventDefault?: boolean
   active?: boolean
+  trackId: string
 }
 
 const Button: FC<ButtonProps> = ({
@@ -16,12 +18,20 @@ const Button: FC<ButtonProps> = ({
   preventDefault,
   children,
   className,
+  trackId,
   ...props
 }) => {
-  useKey(keyCode, onClick, preventDefault)
+  const handleClick = () => {
+    if (trackId) {
+      track('BUTTON', { trackId })
+    }
+    onClick()
+  }
+
+  useKey(keyCode, handleClick, preventDefault)
 
   return (
-    <button className={cx(s.button, className)} {...props} onClick={onClick}>
+    <button className={cx(s.button, className)} {...props} onClick={handleClick}>
       {children}
     </button>
   )
@@ -30,5 +40,5 @@ const Button: FC<ButtonProps> = ({
 export default Button
 
 export const Tab: FC<ButtonProps & { active?: boolean }> = ({ active, ...props }) => {
-  return <Button {...props} className={cx(s.tab, { [s.active]: active })}></Button>
+  return <Button {...props} className={cx(s.tab, { [s.active]: active })} />
 }

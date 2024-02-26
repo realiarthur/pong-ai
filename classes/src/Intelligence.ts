@@ -1,66 +1,15 @@
 import { getConfig } from './config'
-const { maxInitBias } = getConfig()
+import { weighedSum, signRandom, randomChoiceOrder, limiter } from './utils/common'
+import { threshold } from './utils/activation'
 
-// inputs: [
-//  player.yTop,
-//  |player.xEdge|
-//  ball.|x|',
-//  ball.|x|,
-//  ball.y',
-//  ball.y,
-// ]
-// outputs: [up, down]
+const { maxInitBias } = getConfig()
 const LAYERS_CONFIG = [5, 4, 2]
 
-// const INPUT_ANALYSER_CONNECTIONS = [
-//   [1, 0, -1, 0, 0, 0], //PBx
-//   [0, 1, 0, -1, 0, 0], // PBy
-//   [0, 0, 1, 0, -1, 0], // Vx
-//   [0, 0, 0, 1, 0, -1], // Vy
-//   [0, 0, 1, 0, 0, 0], // Mx
-//   [0, 1, 0, 0, 0, 0], // My
-// ]
-
-type BiValue = 0 | 1 | -1
 export type Layer<T = number, TLength = void> = TLength extends number
   ? T[] & { length: TLength }
   : T[]
 export type Weights = number[][][] // layer, input,
 export type ActivationFn = (x: number) => number
-
-const thresholdActivation = (x: number, threshold = 0, negative = false): BiValue => {
-  if (negative) {
-    const abs = Math.abs(x)
-    return abs > threshold ? (Math.sign(x) as BiValue) : 0
-  } else {
-    return x > threshold ? 1 : 0
-  }
-}
-
-const tanh = (x: number): number => {
-  return 2 / (1 + Math.pow(Math.E, -2 * x)) - 1
-}
-
-const sigmoid = (x: number): number => {
-  return 1 / (1 + Math.pow(Math.E, -x))
-}
-
-const limiter = (value: number, limit = 1) =>
-  value > limit ? limit : value < -limit ? -limit : value
-
-const signRandom = (maxAbs = 1) => 2 * (Math.random() - 0.5) * maxAbs
-
-const weighedSum = (inputs: Layer, weights: Layer) =>
-  inputs.reduce((sum, inputValue, inputIndex) => {
-    return sum + inputValue * weights[inputIndex]
-  }, 0)
-
-const weighedAverage = (inputs: Layer, weights: Layer) => {
-  return weighedSum(inputs, weights) / weights.filter(x => x).length
-}
-
-const randomChoice = (value1: number, value2: number) =>
-  Math.random() > 0.5 ? [value1, value2] : [value2, value1]
 
 type IntelligenceProps = {
   generation?: number
@@ -123,7 +72,10 @@ export class Intelligence {
       weightChild2[layerIndex] = weightChild2[layerIndex] || []
       weightChild2[layerIndex][neuronIndex] = []
       return weights.map((weight, weightIndex) => {
-        const values = randomChoice(weight, parent2.weights[layerIndex][neuronIndex][weightIndex])
+        const values = randomChoiceOrder(
+          weight,
+          parent2.weights[layerIndex][neuronIndex][weightIndex],
+        )
         weightChild2[layerIndex][neuronIndex][weightIndex] = values[1]
         return values[0]
       })
@@ -137,7 +89,7 @@ export class Intelligence {
         return 0
       }
 
-      const values = randomChoice(bias, parent2.biases[layerIndex][neuronIndex])
+      const values = randomChoiceOrder(bias, parent2.biases[layerIndex][neuronIndex])
       biasesChild2[layerIndex][neuronIndex] = values[1]
 
       return values[0]
@@ -216,7 +168,7 @@ export class Intelligence {
 
       // linear + bias
       const sum = weighedSum(prevCalcLayer, weights)
-      const activation = thresholdActivation(sum, bias || 0)
+      const activation = threshold(sum, bias || 0)
 
       return activation
     })
@@ -247,7 +199,7 @@ export class Intelligence {
   static deserialize = (json?: string | null) => {
     if (!json) return
     const values = JSON.parse(json) as IntelligenceProps
-    return new Intelligence({ birthTime: 0, ...values }) // TODOC birthTime
+    return new Intelligence(values)
   }
 
   getKey = () => `#${this.generation}.${this.siblingIndex}`

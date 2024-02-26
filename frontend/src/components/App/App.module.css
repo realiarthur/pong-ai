@@ -1,6 +1,8 @@
 .app {
   width: 100vw;
   height: 100vh;
+  min-width: 1400px;
+  min-height: 700px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -51,6 +53,26 @@
   gap: 50px;
 
   .boardContainer {
+    position: relative;
+
+    .startBtn {
+      font-size: 36px;
+      border-color: var(--c-gold);
+      color: var(--c-gold);
+      width: 200px;
+      height: 59px;
+      position: absolute;
+      top: 245px;
+      left: calc(50% - 100px);
+      background: var(--c-border);
+      z-index: 1;
+
+      &:hover {
+        border-color: var(--c-gold);
+        color: var(--c-gold);
+      }
+    }
+
     .header {
       width: var(--d-board-width);
       height: 40px;

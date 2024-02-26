@@ -17,40 +17,6 @@ const Player: FC<{ player: PlayerClass; className?: string }> = ({
     player.current.style.transform = `translate(${xEdge}px, ${yTop}px)`
   }, [xEdge, yTop])
 
-  useEffect(() => {
-    if (controller !== 'keys') return
-    const keyboardController = () => {
-      let timer: NodeJS.Timeout | null = null
-      return [
-        ({ code }: KeyboardEvent) => {
-          if (timer) return
-
-          if (code === 'ArrowUp' || code === 'KeyW') {
-            timer = setInterval(() => updatePosition(-1), KEYBOARD_REPEAT_TIMEOUT)
-          }
-          if (code === 'ArrowDown' || code === 'KeyS') {
-            timer = setInterval(() => updatePosition(1), KEYBOARD_REPEAT_TIMEOUT)
-          }
-        },
-        () => {
-          if (timer) {
-            clearTimeout(timer)
-            timer = null
-          }
-        },
-      ] as const
-    }
-    const [handle, cancel] = keyboardController()
-    window.addEventListener('keydown', handle)
-    window.addEventListener('keyup', cancel)
-
-    return () => {
-      cancel()
-      window.removeEventListener('keydown', handle)
-      window.removeEventListener('keyup', cancel)
-    }
-  }, [controller])
-
   return <div className={cx(s.player, s[side], s[controller], className)} ref={player}></div>
 }
 

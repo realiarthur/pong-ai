@@ -1,24 +1,23 @@
 import { useLayoutEffect, useState, ChangeEventHandler, useEffect } from 'react'
 import Board from 'components/Board/Board'
 import s from './App.module.css'
-import { EngineClass, getConfig, controllers, Side, Controller } from 'classes'
+import { EngineClass, getConfig, controllers, Side, Controller, setConfig } from 'classes'
 import Intelligence from 'components/Intelligence/Intelligence'
 import Environment, { EnvFields } from 'components/Environment/Environment'
 import cx from 'classnames'
 import SiblingsMonitor from 'components/SiblingsMonitor/SiblingsMonitor'
 import Button, { Tab } from 'components/Button/Button'
+import CrossingIllustration from 'components/CrossingIllustration/CrossingIllustration'
+import GlobalMinimumIllustration from 'components/GlobalMinimumIllustration/GlobalMinimumIllustration'
 
-const { VISIBLE_SETS_COUNT } = getConfig()
+const { VISIBLE_SETS_COUNT, aiSpeed } = getConfig()
 
 type Theme = 'dark' | 'light'
 const initTheme: Theme = 'dark'
 document.body.className = initTheme
 
 const engine = new EngineClass()
-const { loadLeader, saveLeader, killSet, update, setControllers, watchLeaderToggle, savedPlayers } =
-  engine
-
-setControllers('env', 'ai')
+const { saveLeader, killSet, update, setControllers, watchLeaderToggle } = engine
 
 // const headers = ['pY', '|ΔX|', 'bY', 'NbVx', 'bVy']
 // const headers = ['pY', "ΔX'", 'ΔX', "bY'", 'bY']
@@ -26,7 +25,7 @@ setControllers('env', 'ai')
 // const headers = ['ΔX', 'pY', 'bY', 'ᾱ', 'e']
 // const headers = ['ΔX', 'pY', 'bY', "bVx'", 'bVy', 'e']
 // const headers = ['ΔX', 'pY', 'bY', "bVx'", 'bVy']
-const headers = ['ΔX', 'pY', 'bY', "cos'", 'sin']
+const headers = ['pY', "bX'", 'bY', "cos'", 'sin']
 
 type EngineUpdates = ReturnType<EngineClass['update']>
 const updatesInit = engine.update()
@@ -50,6 +49,8 @@ const App = () => {
     setTheme(neeValue)
     document.body.className = neeValue
   }
+
+  const { savedPlayers } = engine
 
   useLayoutEffect(() => {
     if (!on) {
@@ -84,30 +85,24 @@ const App = () => {
 
   const { leader, hasOnlyAi, hasEnvAi, hasAi, watchIndividual, hasKeys } = engine
 
-  const envFields: EnvFields | null =
-    // hasOnlyAi
-    //   ? [
-    //       ['_header', ['current', 'step', 'final']],
-    //       ['speed', ['ballSpeed', 'ballSpeedEnvStep', 'ballSpeedEnvFinal']],
-    //       ['mutation', ['maxMutation', 'maxMutationEnvStep', 'maxMutationEnvFinal']],
-    //       ['_header', ['max', 'score']],
-    //       ['population', ['population', 'divisionScore']],
-    //     ]
-    // :
-    hasEnvAi
-      ? [
-          ['_header', ['current', 'step', 'final']],
-          ['bounce', ['bounce', 'bounceEnvStep', 'bounceEnvFinal']],
-          ['fail', ['fail', 'failEnvStep', 'failEnvFinal']],
-          ['move', ['move', 'moveEnvStep', 'moveEnvFinal']],
-          ['middle', ['middle', 'middleEnvStep', 'middleEnvFinal']],
-          ['speed', ['ballSpeed', 'ballSpeedEnvStep', 'ballSpeedEnvFinal']],
-          ['mutation', ['maxMutation', 'maxMutationEnvStep', 'maxMutationEnvFinal']],
-          ['wall min°', ['wallMinAngle', 'wallMinAngleEnvStep', 'wallMinAngleEnvFinal']],
-          ['_header', ['max', 'birth', 'death']],
-          ['population', ['population', 'divisionThreshold', 'deathThreshold']],
-        ]
-      : [['speed', ['ballSpeed']]]
+  const envFields: EnvFields | null = hasEnvAi
+    ? [
+        ['_header', ['current', 'step', 'final']],
+        ['bounce', ['bounce', 'bounceEnvStep', 'bounceEnvFinal']],
+        ['fail', ['fail', 'failEnvStep', 'failEnvFinal']],
+        ['speed', ['ballSpeed', 'ballSpeedEnvStep', 'ballSpeedEnvFinal']],
+        ['mutation', ['maxMutation', 'maxMutationEnvStep', 'maxMutationEnvFinal']],
+        ['wall min°', ['wallMinAngle', 'wallMinAngleEnvStep', 'wallMinAngleEnvFinal']],
+        ['_header', ['max', 'birth', 'death']],
+        ['population', ['population', 'divisionThreshold', 'deathThreshold']],
+      ]
+    : hasOnlyAi
+    ? [['ball speed', [{ key: 'ballSpeed', type: 'range', min: 13, max: 22 }]]]
+    : [
+        ['ball speed', [{ key: 'ballSpeed', type: 'range', min: 13, max: 22 }]],
+        ['player speed', [{ key: 'playerSpeed', type: 'range', min: 7, max: 20 }]],
+        ['ai speed', [{ key: 'aiSpeed', disabled: true, type: 'range', min: 7, max: 20 }]],
+      ]
 
   let visibleSets: EngineUpdates = []
   for (let index = 0; index < sets.length; index++) {
@@ -152,29 +147,56 @@ const App = () => {
   }
   const compare = () => {
     const keys = Object.keys(savedPlayers)
-    handleChangeController('left')(keys[keys.length - 1])
-    handleChangeController('right')(keys[keys.length - 2] ?? keys[keys.length - 1])
+    handleChangeController('left')(keys[0])
+    handleChangeController('right')(keys[1] ?? keys[0])
+    setConfig({ ballSpeed: 20 })
+    setSets(engine.sets)
   }
   const play = () => {
     const keys = Object.keys(savedPlayers)
     handleChangeController('left')('keys')
-    handleChangeController('right')(keys[keys.length - 1])
+    handleChangeController('right')(keys[0])
+    setConfig({ ballSpeed: 15 })
+    setSets(engine.sets)
   }
+  const train = () => {
+    handleChangeController('left')('env')
+    handleChangeController('right')('ai')
+    random()
+    setConfig({ ballSpeed: 13 })
+    setSets(engine.sets)
+  }
+
+  useEffect(() => {
+    play()
+  }, [])
+
+  const tab = hasKeys ? 'play' : hasOnlyAi ? 'compare' : 'train'
 
   return (
     <div className={cx(s.app)}>
-      <Button className={s.theme} onClick={themeToggle}>
+      <Button className={s.theme} onClick={themeToggle} trackId='theme'>
         {theme}
       </Button>
       <div className={s.modeControls}>
-        <Tab active={hasEnvAi} onClick={() => handleChangeController('left')('env')}>
-          train
+        <Tab
+          active={tab === 'play'}
+          onClick={play}
+          disabled={!Object.keys(savedPlayers)}
+          trackId='play'
+        >
+          play
         </Tab>
-        <Tab active={hasOnlyAi} onClick={compare} disabled={!Object.keys(savedPlayers)}>
+        <Tab
+          active={tab === 'compare'}
+          onClick={compare}
+          disabled={!Object.keys(savedPlayers)}
+          trackId='compare'
+        >
           compare
         </Tab>
-        <Tab active={hasKeys} onClick={play} disabled={!Object.keys(savedPlayers)}>
-          play
+        <Tab active={tab === 'train'} onClick={train} trackId='train'>
+          train
         </Tab>
       </div>
       <div className={s.container}>
@@ -204,11 +226,11 @@ const App = () => {
               </select>
 
               <div className={s.controls}>
-                <Button onClick={togglePlay} keyCode='Space'>
+                <Button onClick={togglePlay} keyCode='Space' preventDefault trackId='pause'>
                   <u> </u>
                   {on ? 'Pause' : 'Play'}
                 </Button>
-                <Button onClick={restart} keyCode='KeyR'>
+                <Button onClick={restart} keyCode='KeyR' trackId='restart'>
                   <u>R</u>estart
                 </Button>
               </div>
@@ -233,6 +255,11 @@ const App = () => {
               <span className={cx(s.score, s.right)}>{leader?.set.players[1].score ?? 0}</span>
             </div>
             <Board sets={visibleSets} leader={leader?.player} leaderSet={leader?.set} />
+            {/* {!on && (
+              <Button onClick={togglePlay} trackId='start' className={s.startBtn}>
+                start
+              </Button>
+            )} */}
           </div>
 
           <div className={cx(s.col)}>
@@ -272,18 +299,29 @@ const App = () => {
                         <Button
                           onClick={watchLeaderToggle}
                           className={cx({ [s.unwatch]: watchIndividual })}
+                          keyCode='KeyT'
+                          disabled={!leader}
+                          trackId='watch'
                         >
-                          Watch
+                          Wa<u>t</u>ch
                         </Button>
-                        <Button onClick={() => killSet(leader?.set)}>Kill</Button>
-                        <Button onClick={mutate} keyCode='KeyM'>
+                        <Button
+                          onClick={saveLeader}
+                          keyCode='KeyE'
+                          disabled={!leader}
+                          trackId='save'
+                        >
+                          Sav<u>e</u>
+                        </Button>
+                        <Button onClick={mutate} keyCode='KeyM' disabled={!leader} trackId='mutate'>
                           <u>M</u>utate
                         </Button>
-                      </div>
-                      <div className={s.controls}>
-                        <Button onClick={loadLeader}>Load</Button>
-                        <Button onClick={saveLeader} keyCode='KeyE'>
-                          Sav<u>e</u>
+                        <Button
+                          onClick={() => killSet(leader?.set)}
+                          disabled={!leader}
+                          trackId='kill'
+                        >
+                          Kill
                         </Button>
                       </div>
                     </>
@@ -303,15 +341,16 @@ const App = () => {
 
                       <SiblingsMonitor engine={engine} />
                       <div className={s.controls}>
-                        <Button onClick={random} keyCode='KeyA'>
-                          R<u>a</u>ndom
+                        <Button onClick={random} keyCode='KeyN' trackId='random'>
+                          Ra<u>n</u>dom
                         </Button>
                         <Button
                           onClick={newGeneration}
                           disabled={engine.statistic.survivedCount < 2}
-                          keyCode='KeyT'
+                          keyCode='KeyC'
+                          trackId='reproduce'
                         >
-                          Genera<u>t</u>e
+                          Reprodu<u>c</u>e
                         </Button>
                       </div>
                     </>
@@ -323,6 +362,8 @@ const App = () => {
           </div>
         </div>
       </div>
+      {/* <CrossingIllustration />
+      <GlobalMinimumIllustration /> */}
     </div>
   )
 }

@@ -37,7 +37,8 @@ const SiblingsMonitor: FC<{ engine: EngineClass }> = ({ engine }) => {
               <p className={s.monitorItemTitle}>
                 <span>generation #{generationNumber}</span>
                 <span>
-                  <span className={s.survivedNumber}>{values.survived}</span> / {values.count}
+                  <span className={s.survivedNumber}>{values.survived}</span> /{' '}
+                  <span className={s.itemCount}>{values.count}</span>
                 </span>
               </p>
             </div>
@@ -56,7 +57,8 @@ const SiblingsMonitor: FC<{ engine: EngineClass }> = ({ engine }) => {
         <p className={s.monitorItemTitle}>
           <span>total</span>
           <span>
-            <span className={s.survivedNumber}>{survivedCount}</span> / {population}
+            <span className={s.survivedNumber}>{survivedCount}</span> /{' '}
+            <span className={s.itemCount}>{population}</span>
           </span>
         </p>
       </div>

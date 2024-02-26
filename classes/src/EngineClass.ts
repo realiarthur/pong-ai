@@ -1,13 +1,13 @@
 import { GameSet } from './GameSet'
 import { Statistic } from './Generation'
 import { Intelligence } from './Intelligence'
-import { Controller, PlayerClass, controllers } from './PlayerClass'
+import { Controller, PlayerClass } from './PlayerClass'
 import { getConfig, shiftEnvironment, subscribe } from './config'
+import { forEachRight } from './utils/forEachRight'
 import { getSavedPlayers } from './utils/getSavedPlayers'
 
 const LOCAL_STORAGE_LEADER = 'leader'
 const LEADER_AUTO_UPDATE_TIMEOUT = 7500
-const { VISIBLE_SETS_COUNT } = getConfig()
 
 type Leader = {
   set: GameSet
@@ -15,12 +15,6 @@ type Leader = {
   playerIndex: number
 }
 
-const forEachRight = <T>(array: T[], callback: (item: T, index: number) => void) => {
-  for (let index = array.length - 1; index >= 0; index--) {
-    const element = array[index]
-    callback(element, index)
-  }
-}
 export class EngineClass {
   savedPlayers = getSavedPlayers()
   config = getConfig()
@@ -43,6 +37,8 @@ export class EngineClass {
   watchIndividual?: Leader
   watchGeneration?: number | false
   lastLeaderAutoUpdate = 0
+
+  status: 'gene poll generation' | 'selection' | 'final selection' = 'gene poll generation'
 
   destroy = () => {
     this.unsubscriber()
@@ -82,13 +78,13 @@ export class EngineClass {
       }
     }
 
-    const set = this.createSet(
-      createControllerBrain(this.leftController),
-      createControllerBrain(this.rightController),
-    )
-    this.sets = [set]
+    if (!this.hasEnv || this.rightController instanceof Intelligence) {
+      const set = this.createSet(
+        createControllerBrain(this.leftController),
+        createControllerBrain(this.rightController),
+      )
+      this.sets = [set]
 
-    if (this.hasAi) {
       const index = this.leftController === 'ai' ? 0 : 1
 
       const leader = set.players[index].brain
@@ -127,6 +123,9 @@ export class EngineClass {
     this.leader = undefined
     this.watchIndividual = undefined
     this.watchGeneration = undefined
+    if (this.hasEnv) {
+      this.status = 'gene poll generation'
+    }
   }
 
   update = () => {
@@ -211,16 +210,36 @@ export class EngineClass {
     })
 
     if (this.statistic.survivedCount / this.statistic.population >= 0.9) {
-      this.generateGeneration()
+      if (
+        this.status === 'gene poll generation' &&
+        this.statistic.survivedCount < this.config.genePoolThreshold * this.config.population
+      ) {
+        forEachRight(this.sets, set => {
+          if (!set.survived) {
+            this.killSet(set)
+          }
+        })
+        this.random()
+      } else {
+        this.status = 'selection'
+        this.generateGeneration()
+      }
     }
 
     return [...this.sets]
   }
 
   generateGeneration() {
+    if (!this.statistic.population) return
+
     forEachRight(this.sets, set => {
-      if (set.survived) return
-      this.killSet(set)
+      if (!set.survived) {
+        this.killSet(set)
+      } else {
+        set.survived = false
+        set.players[0].reset(false)
+        set.players[1].reset(false)
+      }
     })
 
     console.debug('survived:', this.statistic.population)
@@ -238,7 +257,7 @@ export class EngineClass {
       this.divide(setsForDivide, childrenCount / 2)
     }
 
-    // TODOC add final selection statement
+    // TODO add final selection statement
     shiftEnvironment()
     this.statistic.resetSurvived()
   }
@@ -246,18 +265,13 @@ export class EngineClass {
   divide(sets: GameSet[], childrenCount: number) {
     console.debug('divide')
     sets.forEach(set => {
-      const player = set.players[1] // TODOC
+      const player = set.players[1] //
       if (!player.brain) return false
-
-      player.stimulation = 0
-      player.score = 0
 
       for (let index = 0; index < childrenCount; index++) {
         const siblingIndex = this.statistic.increase(player.brain.generation + 1)
         this.createSet(undefined, player.brain.mutate(siblingIndex))
       }
-
-      set.survived = false
     })
   }
 
@@ -268,22 +282,14 @@ export class EngineClass {
     sets.forEach((set, index) => {
       if (index > middle) return
 
-      const player1 = set.players[1] // TODOC
+      const player1 = set.players[1] // TODO
       if (!player1.brain) return false
-      player1.stimulation = 0
-      player1.score = 0
-      set.survived = false
 
       let set2Index = sets.length - index - 1
       set2Index = set2Index === index ? 0 : set2Index
-
       const set2 = sets[set2Index]
-
-      const player2 = set2.players[1] // TODOC
+      const player2 = set2.players[1] // TODO
       if (!player2.brain) return false
-      player2.stimulation = 0
-      player2.score = 0
-      set2.survived = false
 
       for (let index = 0; index < childrenCount; index++) {
         const siblingIndex = this.statistic.increase(generation, 2)
@@ -302,7 +308,6 @@ export class EngineClass {
   }
 
   createBrain = (brain?: Intelligence, mutate = true) => {
-    // TODOC how to prevent leader sibling index
     const siblingIndex = this.statistic.increase((brain?.generation ?? 0) + 1)
 
     if (brain && !mutate) {
@@ -372,6 +377,7 @@ export class EngineClass {
 
     set.kill()
     this.sets[index].players.forEach(player => {
+      player.destroy()
       if (!player.brain) return
       this.statistic.decrease(player.brain.generation)
     })
@@ -394,35 +400,6 @@ export class EngineClass {
     this.lastLeaderAutoUpdate = 0
     this.watchIndividual = undefined
     this.watchGeneration = number === this.statistic.getLastGenerationNumber() ? undefined : number
-  }
-
-  loadLeader = () => {
-    const json = localStorage.getItem(LOCAL_STORAGE_LEADER)
-    const leader = Intelligence.deserialize(json)
-
-    if (leader) {
-      this.reset()
-      this.statistic = new Statistic()
-      this.statistic.population = 1
-
-      const set = this.createSet(
-        this.leftController instanceof Intelligence ? this.leftController : undefined,
-        leader,
-      )
-      this.sets = [set]
-
-      const generationNumber = leader?.generation || 0
-      const generation = this.statistic.createGeneration(generationNumber)
-      generation.count = 1
-      generation.lastSiblingIndex = leader.siblingIndex || 0
-      const index = this.leftController === 'ai' ? 0 : 1
-      this.watchIndividual = {
-        set,
-        player: set.players[index],
-        playerIndex: index,
-      }
-      this.watchGeneration = leader.generation
-    }
   }
 
   saveLeader = () => {

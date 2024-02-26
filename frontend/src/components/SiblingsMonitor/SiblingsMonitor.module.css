@@ -49,6 +49,12 @@
 
     .survivedNumber {
       color: var(--c-gold);
+      display: inline-block;
+      padding: 0 1px;
+      backdrop-filter: grayscale(90%);
+    }
+
+    .itemCount {
     }
 
     &.total {
@@ -56,7 +62,7 @@
     }
 
     &.load {
-      font-weight: bold;
+      cursor: default;
 
       .monitorItemCountLine {
         background: var(--c-red);

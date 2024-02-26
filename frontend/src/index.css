@@ -66,6 +66,10 @@ input[type='number'] {
   -moz-appearance: textfield; /* Firefox */
 }
 
+input:disabled {
+  color: var(--c-muted);
+}
+
 select {
   width: 100%;
   color: var(--c-main);

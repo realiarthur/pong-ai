@@ -1,0 +1,20 @@
+.container {
+  padding: 200px 0;
+}
+
+.text {
+  stroke-width: 0;
+  fill: var(--c-main);
+  font-size: 13.3px;
+}
+
+.mutationLine {
+  marker-end: url(#head);
+  opacity: 0.5;
+}
+
+.crossingLine {
+  stroke-dasharray: 3px;
+  marker-end: url(#head);
+  opacity: 0.5;
+}

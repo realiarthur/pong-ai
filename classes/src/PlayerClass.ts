@@ -1,11 +1,9 @@
 import { Intelligence } from './Intelligence'
-import { getConfig, Config, StimulateType } from './config'
+import { KeyboardController } from './KeyboardController'
+import { getConfig, Config, StimulateType, subscribe } from './config'
 
 const { paddleWidth, paddleHeight, boardWidth, boardHeight, playerSpeed, boardPadding } =
   getConfig()
-
-const freeEnergy = (boardHeight - paddleHeight) / 2
-const energyStep = playerSpeed / freeEnergy
 
 export type Side = 'left' | 'right'
 export type Vector2 = [number, number]
@@ -22,7 +20,8 @@ export type PlayerClassProps = {
 export class PlayerClass {
   side: Side
   xEdge: number
-  xFail: number
+  xCenter: number
+  xBack: number
   yTop: number
   yBottom: number
   height: number = paddleHeight
@@ -31,18 +30,35 @@ export class PlayerClass {
   score: number = 0
   stimulation: number = 0
   energy = 1
-  previousMove = -1 | 1
+  previousDirection = -1 | 1
+  keyboardController?: KeyboardController
+  unsubscriber?: () => void
+  speed: number = playerSpeed
 
   constructor({ side, height = paddleHeight, controller = 'keys', brain }: PlayerClassProps) {
     this.side = side
     this.xEdge =
       side === 'left' ? paddleWidth + boardPadding : boardWidth - paddleWidth - boardPadding
-    this.xFail = side === 'left' ? this.xEdge - paddleWidth / 2 : this.xEdge + paddleWidth / 2
+    this.xCenter = side === 'left' ? this.xEdge - paddleWidth / 2 : this.xEdge + paddleWidth / 2
+    this.xBack = side === 'left' ? this.xEdge - paddleWidth : this.xEdge + paddleWidth
     this.height = controller === 'env' ? boardHeight : height
     this.yTop = boardHeight / 2 - this.height / 2
     this.yBottom = this.yTop + this.height
     this.controller = controller
     this.brain = brain
+
+    if (controller === 'keys') {
+      this.keyboardController = new KeyboardController()
+    }
+
+    this.unsubscriber = subscribe(config => {
+      this.speed = this.controller === 'ai' ? config.aiSpeed : config.playerSpeed
+    })
+  }
+
+  destroy = () => {
+    this.unsubscriber?.()
+    this.keyboardController?.destroy()
   }
 
   refill = () => {
@@ -50,30 +66,11 @@ export class PlayerClass {
   }
 
   updatePosition = (direction: number) => {
-    if (direction === 0) {
-      this.previousMove = 0
-      return
-    }
-
-    const directionAbs = Math.abs(direction)
-
-    this.energy = this.energy - directionAbs * energyStep
-    if (this.energy <= 0) {
-      this.energy = 0
-      this.stimulate('move', directionAbs)
-    }
-
-    if (this.previousMove !== direction) {
-      this.stimulate('move')
-      this.previousMove = direction
-    }
+    if (direction === 0) return
 
     if ((this.yTop <= 0 && direction < 0) || (this.yBottom >= boardHeight && direction > 0)) return
 
-    this.yTop = Math.max(
-      0,
-      Math.min(boardHeight - this.height, this.yTop + direction * playerSpeed),
-    )
+    this.yTop = Math.max(0, Math.min(boardHeight - this.height, this.yTop + direction * this.speed))
     this.yBottom = this.yTop + this.height
   }
 
@@ -88,10 +85,12 @@ export class PlayerClass {
     this.score = this.score + 1
   }
 
-  reset = () => {
+  reset = (reposition = true) => {
     this.score = 0
     this.stimulation = 0
-    this.yTop = boardHeight / 2 - this.height / 2
-    this.yBottom = this.yTop + this.height
+    if (reposition) {
+      this.yTop = boardHeight / 2 - this.height / 2
+      this.yBottom = this.yTop + this.height
+    }
   }
 }

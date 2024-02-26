@@ -1,0 +1,88 @@
+.div10 {
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  justify-items: stretch;
+
+  & div {
+    width: 10%;
+    height: 100%;
+  }
+}
+
+.container {
+  position: relative;
+  margin-left: 70px;
+  display: flex;
+  flex-direction: column;
+  margin: 300px 0;
+
+  & > .div10 {
+    position: absolute;
+
+    div {
+      border-right: 1px dashed var(--c-main);
+
+      &:last-child {
+        border-right: none;
+      }
+    }
+  }
+
+  .itemContainer {
+    position: relative;
+    margin: 15px 0;
+    height: 10px;
+
+    .title {
+      display: inline-block;
+      position: absolute;
+      left: -100px;
+      top: -3px;
+      width: 90px;
+      text-align: right;
+      font-size: 13.3px;
+    }
+
+    .item {
+      width: 250px;
+      height: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+  }
+
+  .parent1 .item {
+    background: var(--c-green);
+  }
+
+  .parent2 .item {
+    background: var(--c-red);
+  }
+
+  .child1 .item {
+    & .div10 {
+      & .t1 {
+        background: var(--c-green);
+      }
+
+      & .t2 {
+        background: var(--c-red);
+      }
+    }
+  }
+
+  .child2 .item {
+    & .div10 {
+      & .t1 {
+        background: var(--c-red);
+      }
+
+      & .t2 {
+        background: var(--c-green);
+      }
+    }
+  }
+}
