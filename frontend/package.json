@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "start": "PORT=1972 react-app-rewired start",
-    "build": "react-app-rewired build"
+    "build": "react-app-rewired build",
+    "serve": "serve -l 1972 ./build"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "^2.4.1",
@@ -12,7 +13,8 @@
     "classnames": "^2.3.2",
     "react": "^18.2.0",
     "react-debounce-render": "^8.0.2",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "serve": "^14.2.1"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
