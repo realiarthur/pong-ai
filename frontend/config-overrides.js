@@ -1,12 +1,14 @@
-const postCssConfig = (config) => {
+const { config } = require('process')
+
+const postCssConfig = config => {
   const updatedConfig = { ...config }
   const loaders = updatedConfig.module.rules[1].oneOf
-  loaders.forEach((loader) => {
+  loaders.forEach(loader => {
     if (loader.use) {
-      loader.use.forEach((item) => {
+      loader.use.forEach(item => {
         if (item.options && item.options.ident === 'postcss') {
           const optionsConfig = {
-            path: './postcss.config.js'
+            path: './postcss.config.js',
           }
 
           item.options.config = optionsConfig
@@ -20,7 +22,8 @@ const postCssConfig = (config) => {
 }
 
 module.exports = {
-  webpack: (config) => {
+  webpack: config => {
+    config.output.publicPath = 'auto'
     return postCssConfig(config)
-  }
+  },
 }
