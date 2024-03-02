@@ -21,5 +21,5 @@ export const useKey = (
     return () => {
       window.removeEventListener('keydown', handle)
     }
-  }, [keyCode])
+  }, [keyCode, callback])
 }

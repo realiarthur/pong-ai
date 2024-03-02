@@ -39,7 +39,7 @@ export class BallClass {
   xvAbs: number = getVxAbs(initSpeed)
   vy: number = 0
   vyPart: number = 0
-  speed: number = getConfig().ballSpeed
+  speed: number = initSpeed
   onFail: (side: Side) => void
   unsubscriber: () => void
 
@@ -74,15 +74,15 @@ export class BallClass {
     this.setAngle(mirror ? mirrorAngle(initAngle) : initAngle)
   }
 
-  setAngle = (angle: number) => {
+  setAngle = (angle: number, speedCoefficient = 1) => {
     angle = normalizeAngle(angle)
     this.angle = angle
     const cos = Math.cos(angle)
 
     const xDirection = Math.sign(cos)
-    const vxAbs = this.serve ? this.xvAbs / 2.5 : this.xvAbs
+    const vxAbs = (this.serve ? this.xvAbs / 2.5 : this.xvAbs) * speedCoefficient
     this.vx = xDirection * vxAbs
-    const vy = this.speed * Math.sin(angle)
+    const vy = this.speed * Math.sin(angle) * speedCoefficient
     this.vy = this.serve ? vy / 2.5 : vy
 
     const realAngle = Math.atan(this.vy / vxAbs)

@@ -1,5 +1,3 @@
-// TODO move it to UI
-
 export class KeyboardController {
   upPressed = 0
   downPressed = 0

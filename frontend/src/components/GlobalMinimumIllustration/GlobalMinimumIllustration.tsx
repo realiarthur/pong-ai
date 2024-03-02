@@ -39,7 +39,7 @@ const GlobalMinimumIllustration = () => {
 
         <g>
           <text x={320} y={160} className={s.text}>
-            crossing
+            crossover
           </text>
 
           <path d='M415,65 Q440,180 208,93' className={s.crossingLine} />

@@ -1,13 +1,13 @@
 import { Intelligence } from './Intelligence'
 import { KeyboardController } from './KeyboardController'
-import { getConfig, Config, StimulateType, subscribe } from './config'
+import { getConfig, Config, subscribe } from './config'
 
 const { paddleWidth, paddleHeight, boardWidth, boardHeight, playerSpeed, boardPadding } =
   getConfig()
 
 export type Side = 'left' | 'right'
 export type Vector2 = [number, number]
-export const controllers = ['env', 'ai', 'keys'] as const
+export const controllers = ['keys', 'pointer', 'env', 'ai'] as const
 export type Controller = (typeof controllers)[number]
 
 export type PlayerClassProps = {
@@ -28,12 +28,11 @@ export class PlayerClass {
   controller: Controller
   brain?: Intelligence
   score: number = 0
-  stimulation: number = 0
   energy = 1
   previousDirection = -1 | 1
-  keyboardController?: KeyboardController
   unsubscriber?: () => void
   speed: number = playerSpeed
+  keyboardController?: KeyboardController
 
   constructor({ side, height = paddleHeight, controller = 'keys', brain }: PlayerClassProps) {
     this.side = side
@@ -70,15 +69,13 @@ export class PlayerClass {
 
     if ((this.yTop <= 0 && direction < 0) || (this.yBottom >= boardHeight && direction > 0)) return
 
-    this.yTop = Math.max(0, Math.min(boardHeight - this.height, this.yTop + direction * this.speed))
-    this.yBottom = this.yTop + this.height
+    this.setPosition(this.yTop + direction * this.speed)
   }
 
-  stimulate = (type: StimulateType, multi: number = 1) => {
-    if (this.controller !== 'ai') return
-
-    const config = getConfig()
-    this.stimulation = this.stimulation + config[type as keyof Config] * multi
+  setPosition = (y: number, center = false) => {
+    const yTop = center ? y - this.height / 2 : y
+    this.yTop = Math.max(0, Math.min(boardHeight - this.height, yTop))
+    this.yBottom = this.yTop + this.height
   }
 
   addScore = () => {
@@ -87,7 +84,6 @@ export class PlayerClass {
 
   reset = (reposition = true) => {
     this.score = 0
-    this.stimulation = 0
     if (reposition) {
       this.yTop = boardHeight / 2 - this.height / 2
       this.yBottom = this.yTop + this.height

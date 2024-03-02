@@ -3,7 +3,6 @@ import { Intelligence } from './Intelligence'
 export class GenerationStat {
   number: number = 0
   count: number = 0
-  survived: number = 0
   lastSiblingIndex: number = -1
 
   constructor(number?: number) {
@@ -19,20 +18,11 @@ export class GenerationStat {
     this.lastSiblingIndex = this.lastSiblingIndex + count
     return this.lastSiblingIndex
   }
-
-  increaseSurvived = () => {
-    this.survived = this.survived + 1
-  }
-
-  resetSurvived = () => {
-    this.survived = 0
-  }
 }
 
 export class Statistic {
   generationsStat: Array<GenerationStat | undefined> = []
   population = 0
-  survivedCount = 0
 
   createGeneration = (number: number) => {
     const generation = new GenerationStat(number)
@@ -56,16 +46,6 @@ export class Statistic {
     this.generationsStat[generationNumber]?.decrease()
   }
 
-  increaseSurvived = (generationNumber: number) => {
-    this.generationsStat[generationNumber]?.increaseSurvived()
-    this.survivedCount = this.survivedCount + 1
-  }
-
-  resetSurvived = () => {
-    this.generationsStat.forEach(generationNumber => generationNumber?.resetSurvived())
-    this.survivedCount = 0
-  }
-
   getLastGenerationNumber = (callback?: (generation: GenerationStat) => void) => {
     return (
       [...this.generationsStat]
@@ -77,6 +57,6 @@ export class Statistic {
   hasGeneration = (generationNumber: number) => {
     const generation = this.generationsStat[generationNumber]
 
-    return !!generation && !!generation.count && generation.survived < generation.count
+    return !!generation && !!generation.count
   }
 }

@@ -1,5 +1,5 @@
 import { FC, FocusEvent, InputHTMLAttributes, useEffect, useState } from 'react'
-import { getConfig, setConfig, Config, subscribe, StimulateType, envConfig } from 'classes'
+import { getConfig, setConfig, Config, subscribe } from 'classes'
 import s from './Environment.module.css'
 import { track } from 'utils/amplitude'
 
@@ -23,8 +23,14 @@ const Environment: FC<{ fields: EnvFields }> = ({ fields }) => {
   }, [])
 
   const onBlur = (e: FocusEvent<HTMLInputElement>) => {
-    track('INPUT', { key: e.target.name, value: +e.target.value })
-    setConfig({ [e.target.name as keyof Config]: +e.target.value }, 'ui')
+    const value =
+      e.target.type === 'number'
+        ? +e.target.value
+        : e.target.type === 'checkbox'
+        ? e.target.checked
+        : e.target.value
+    track('INPUT', { key: e.target.name, value: value })
+    setConfig({ [e.target.name as keyof Config]: value }, 'ui')
   }
 
   return (
@@ -46,14 +52,29 @@ const Environment: FC<{ fields: EnvFields }> = ({ fields }) => {
                 {keys.map(keyOrProps => {
                   const key = typeof keyOrProps === 'string' ? keyOrProps : keyOrProps.key
                   const props = typeof keyOrProps === 'string' ? {} : keyOrProps
+                  const value = values[key as keyof Config]
+                  const isRange = 'type' in props && props.type === 'range'
+                  if (typeof value === 'boolean') {
+                    return (
+                      <input
+                        type='checkbox'
+                        key={key}
+                        name={key}
+                        defaultChecked={value}
+                        onChange={onBlur}
+                        {...props}
+                      />
+                    )
+                  }
+
                   return (
                     <input
                       type='number'
                       key={key}
                       name={key}
-                      defaultValue={values[key as keyof Config]}
+                      defaultValue={value}
                       onBlur={onBlur}
-                      onInput={'type' in props && props.type === 'range' ? onBlur : undefined}
+                      onInput={isRange ? onBlur : undefined}
                       autoComplete='off'
                       {...props}
                     />

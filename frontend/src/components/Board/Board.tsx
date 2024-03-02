@@ -1,9 +1,11 @@
-import { FC } from 'react'
-import { GameSet, PlayerClass } from 'classes'
+import { FC, useEffect } from 'react'
+import { GameSet, PlayerClass, getConfig } from 'classes'
 import Player from 'components/Player/Player'
 import Ball from 'components/Ball/Ball'
 import cx from 'classnames'
 import s from './Board.module.css'
+
+const { boardWidth, boardHeight } = getConfig()
 
 type BoardProps = {
   sets: GameSet[]
@@ -12,8 +14,21 @@ type BoardProps = {
 }
 
 const Board: FC<BoardProps> = ({ sets, leader, leaderSet }) => {
+  useEffect(() => {
+    const setScreenRatio = () => {
+      const root = document.documentElement
+      const widthRatio = root.clientWidth / boardWidth
+      const heightRatio = root.clientHeight / boardWidth
+      const boardScreenRatio = Math.min(widthRatio, heightRatio)
+      root.style.setProperty('--screen-board-ratio', `${boardScreenRatio}`)
+    }
+    setScreenRatio()
+  }, [])
+
   return (
-    <div className={s.board}>
+    <div className={s.board} id='board'>
+      <div className={s.top}></div>
+      <div className={s.bottom}></div>
       {sets.map(set => {
         const { players, ball, key } = set
         const hasLeader = set === leaderSet

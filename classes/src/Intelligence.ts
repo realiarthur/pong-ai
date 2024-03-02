@@ -55,7 +55,7 @@ export class Intelligence {
       }),
       biases: this.mapLayers(({ bias }) => {
         const mutatedBias = bias ? bias + signRandom(maxInitBias) * maxMutation : 0
-        return mutatedBias
+        return limiter(mutatedBias)
       }),
       siblingIndex,
     })

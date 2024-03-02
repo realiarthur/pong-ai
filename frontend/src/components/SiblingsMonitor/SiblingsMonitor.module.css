@@ -14,7 +14,6 @@
     position: relative;
     border-radius: 2px;
     overflow: hidden;
-    cursor: pointer;
 
     &.watched {
       border-right: 4px var(--c-gold) solid;
@@ -35,8 +34,7 @@
       justify-content: space-between;
     }
 
-    .monitorItemCountLine,
-    .monitorSurvivedCountLine {
+    .monitorItemCountLine {
       position: absolute;
       left: 0;
       top: 0;
@@ -47,13 +45,6 @@
       opacity: 0.5;
     }
 
-    .survivedNumber {
-      color: var(--c-gold);
-      display: inline-block;
-      padding: 0 1px;
-      backdrop-filter: grayscale(90%);
-    }
-
     .itemCount {
     }
 
@@ -62,8 +53,6 @@
     }
 
     &.load {
-      cursor: default;
-
       .monitorItemCountLine {
         background: var(--c-red);
       }

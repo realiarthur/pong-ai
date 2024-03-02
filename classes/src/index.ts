@@ -3,12 +3,4 @@ export { BallClass } from './BallClass'
 export { EngineClass } from './EngineClass'
 export { Intelligence, Weights, Layer } from './Intelligence'
 export { GameSet } from './GameSet'
-export {
-  getConfig,
-  setConfig,
-  subscribe,
-  Config,
-  envConfig,
-  StimulateType,
-  stimulateTypes,
-} from './config'
+export { getConfig, setConfig, subscribe, Config } from './config'

@@ -13,9 +13,4 @@
   &.env {
     height: var(--d-board-height);
   }
-
-  &.keys {
-    opacity: 1 !important;
-    background: var(--c-main) !important;
-  }
 }

@@ -2,10 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './index.css'
 import App from './components/App/App'
-import { setCssConst } from 'utils/setCssConst'
 import { init, track } from './utils/amplitude'
-
-setCssConst()
 
 init()
 track('OPEN')

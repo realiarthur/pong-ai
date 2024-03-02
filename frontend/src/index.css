@@ -21,7 +21,7 @@
   --c-red: #ffc5c5;
   --c-green: #92cb9c;
   --c-selection: #ddd;
-  --c-background: #f8f8f8;
+  --c-background: #fff;
   --o-board-bg-opacity: 0.5;
   --o-board-opacity: 0.1;
 }
@@ -44,6 +44,7 @@ body {
   user-select: none; /* Standard syntax */
   font-family: monospace;
   box-sizing: border-box;
+  font-size: 13.3px;
 }
 
 input {
@@ -53,6 +54,7 @@ input {
   border: none;
   outline: none;
   border-bottom: 1px var(--c-border) solid;
+  border-radius: 0;
 }
 
 input::-webkit-outer-spin-button,

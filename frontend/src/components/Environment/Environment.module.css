@@ -1,5 +1,6 @@
 .config {
   width: 100%;
+  min-width: 275px;
   margin: 16px 0;
   display: flex;
   flex-direction: column;
@@ -21,7 +22,7 @@
 
     .title,
     input {
-      width: 55px;
+      width: 70px;
       text-align: center;
     }
 

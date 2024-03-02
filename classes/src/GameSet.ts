@@ -1,6 +1,7 @@
 import { BallClass } from './BallClass'
 import { PlayerClass } from './PlayerClass'
 import { getConfig } from './config'
+import { lerp } from './utils/collisionDetector'
 
 const {
   paddleHeight,
@@ -22,7 +23,6 @@ export class GameSet {
   players: readonly [PlayerClass, PlayerClass]
   key: string
   dead = false
-  survived = false
 
   constructor(players: readonly [PlayerClass, PlayerClass], key: string) {
     this.players = players
@@ -31,11 +31,9 @@ export class GameSet {
       onFail: side => {
         if (side === 'left') {
           this.players[1].addScore()
-          this.players[0].stimulate('fail')
           this.players[0].refill()
         } else {
           this.players[0].addScore()
-          this.players[1].stimulate('fail')
           this.players[1].refill()
         }
       },
@@ -86,12 +84,17 @@ export class GameSet {
     this.players.forEach(keeper => {
       if (ball.shouldBounced(keeper, prevX)) {
         const bounceAngle = this.getPlayerIntersectAngle(keeper)
-        ball.setAngle(bounceAngle)
-        keeper.stimulate('bounce')
+        const speedCoefficient = 1 // this.getEnvBallSpeed(keeper)
+        ball.setAngle(bounceAngle, speedCoefficient)
         left.refill()
         right.refill()
       }
     })
+  }
+
+  getEnvBallSpeed = (keeper: PlayerClass) => {
+    const randomizeSpeed = keeper.controller === 'env' ? Math.random() > 0.5 : false
+    return randomizeSpeed ? lerp(0.75, 1.25, Math.random()) : 1
   }
 
   getPlayerIntersectAngle = (keeper: PlayerClass) => {
@@ -100,11 +103,12 @@ export class GameSet {
       const wallMinRadAngle = (wallMinAngle / 180) * Math.PI
 
       const consumeMinAngle = Math.random() > 0.5
+      const angleSign = Math.sign(Math.random() - 0.5)
       const bounceAngle =
-        Math.sign(Math.random() - 0.5) *
+        angleSign *
         (consumeMinAngle
-          ? wallMinRadAngle + (maxBounceAngle - wallMinRadAngle) * Math.random()
-          : wallMinRadAngle * Math.random())
+          ? lerp(wallMinRadAngle, maxBounceAngle, Math.random())
+          : maxBounceAngle * Math.random())
       return keeper.side === 'left' ? bounceAngle : Math.PI - bounceAngle
     } else {
       const relativeIntersectY = keeper.yTop + paddleMiddle - this.ball.y

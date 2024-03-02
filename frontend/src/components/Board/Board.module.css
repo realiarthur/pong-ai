@@ -1,9 +1,12 @@
 .board {
+  --d-background-size: calc(30px * var(--d-board-ratio));
+
   position: relative;
   width: var(--d-board-width);
   height: var(--d-board-height);
   overflow: hidden;
   flex-shrink: 0;
+  cursor: none;
 
   &:before {
     content: '';
@@ -11,10 +14,31 @@
     height: 100%;
     position: absolute;
     background-image: url(/src/components/Board/cross.png);
-    background-size: 30px;
+    background-size: var(--d-background-size);
     background-position: -1px 0;
     background-repeat: repeat;
     opacity: var(--o-board-bg-opacity);
+  }
+
+  .top,
+  .bottom {
+    z-index: -1;
+    width: 100%;
+    height: 15px;
+    position: absolute;
+    background-image: url(/src/components/Board/cross.png);
+    background-size: var(--d-background-size);
+    background-repeat: repeat;
+    opacity: 0.2;
+  }
+
+  .top {
+    background-position: -1px 0;
+  }
+
+  .bottom {
+    bottom: 0;
+    background-position: -1px 14px;
   }
 }
 

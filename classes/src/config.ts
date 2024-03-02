@@ -13,32 +13,21 @@ let config = {
 
   playerSpeed: 12,
   aiSpeed: 8,
-  genePoolThreshold: 0.01,
 
-  ballSpeed: 13,
-  ballSpeedEnvStep: 0.35,
-  ballSpeedEnvFinal: 20,
+  ballSpeed: 20,
+
+  wallMinAngle: 40,
+
+  fail: -1,
+
   maxMutation: 0.1,
-  maxMutationEnvStep: -0.003,
-  maxMutationEnvFinal: 0.01,
-  wallMinAngle: 20,
-  wallMinAngleEnvStep: 1,
-  wallMinAngleEnvFinal: 40,
-
-  bounce: 1500,
-  bounceEnvStep: -100,
-  bounceEnvFinal: 300,
-  fail: -1000,
-  failEnvStep: -1000,
-  failEnvFinal: -20000,
-
-  population: 5000,
-  divisionThreshold: 10000,
-  deathThreshold: -10000,
-  divisionScore: 10,
-
   maxInitBias: 0.5,
+
+  population: 1000,
+  deathScore: 21,
+  surviversCount: 100,
   populationIncreaseMulti: 0.01,
+  crossover: false,
 }
 
 export type Config = typeof config
@@ -70,30 +59,4 @@ export const subscribe = (callback: Callback) => {
   return () => {
     subscribers = subscribers.filter(item => item !== callback)
   }
-}
-
-export const stimulateTypes = ['bounce', 'fail'] as const
-export type StimulateType = (typeof stimulateTypes)[number]
-export const envConfig = [...stimulateTypes, 'ballSpeed', 'maxMutation', 'wallMinAngle'] as const
-
-export const shiftEnvironment = () => {
-  setConfig(config => {
-    return envConfig.reduce((result, type) => {
-      const value = config[type]
-      const step = config[`${type}EnvStep`]
-      const final = config[`${type}EnvFinal`]
-
-      if (value === final || step === 0) {
-        return result
-      }
-
-      const newValue = Math.round((value + step) * 1000) / 1000
-      const hasExceedFinal = step > 0 ? newValue > final : newValue < final
-
-      return {
-        ...result,
-        [type]: hasExceedFinal ? final : newValue,
-      }
-    }, {} as Partial<Config>)
-  })
 }

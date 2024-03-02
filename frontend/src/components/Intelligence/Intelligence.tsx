@@ -73,7 +73,7 @@ const Neuron: FC<{
                 x2={getNeuronX(nextLayerNeuronIndex, weights.length)}
                 y2={getNeuronY(layerIndex + 1) - NEURON_HEIGHT}
                 className={cx(s.signal, getClassName(signal))}
-                opacity={signal === 0 ? 0 : Math.max(Math.abs(signal), 0.1)}
+                opacity={!signal || signal === 0 ? 0 : Math.max(Math.abs(signal), 0.1)}
                 // data-value={signal}
                 // data-weight={weight}
               />
