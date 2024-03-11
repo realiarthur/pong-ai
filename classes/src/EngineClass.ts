@@ -81,12 +81,11 @@ export class EngineClass {
       }
     }
 
-    if (!this.hasEnv || this.rightController instanceof Intelligence) {
+    if (!this.hasEnv) {
       const set = this.createSet(
         createControllerBrain(this.leftController),
         createControllerBrain(this.rightController),
       )
-      this.sets = [set]
 
       const index = this.leftController === 'ai' ? 0 : 1
 
@@ -102,6 +101,8 @@ export class EngineClass {
       const generation = this.statistic.createGeneration(generationNumber)
       generation.count = 1
       generation.lastSiblingIndex = leader.siblingIndex || 0
+    } else if (this.rightController instanceof Intelligence) {
+      this.random(undefined, createControllerBrain(this.rightController))
     }
   }
 
@@ -280,13 +281,22 @@ export class EngineClass {
     return set
   }
 
-  random = (count: number = this.config.population) => {
+  random = (count?: number, parent?: Intelligence) => {
+    count = count || parent ? this.config.population : this.config.population * 3
+
+    if (parent) {
+      this.createSet(undefined, parent)
+    }
+
+    const generation = (parent?.generation || 0) + 1
     for (let index = 0; index < count; index++) {
-      const siblingIndex = this.statistic.increase(1)
-      const brain = new Intelligence({
-        generation: 1,
-        siblingIndex,
-      })
+      const siblingIndex = this.statistic.increase(generation)
+      const brain = parent
+        ? parent.mutate(siblingIndex)
+        : new Intelligence({
+            generation,
+            siblingIndex,
+          })
       this.createSet(undefined, brain)
     }
   }

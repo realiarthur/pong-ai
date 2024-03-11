@@ -26,7 +26,10 @@ const Board: FC<BoardProps> = ({ sets, leader, leaderSet }) => {
   }, [])
 
   return (
-    <div className={s.board} id='board'>
+    <div
+      className={cx(s.board, { [s.pointer]: sets[0]?.players[0].controller === 'pointer' })}
+      id='board'
+    >
       <div className={s.top}></div>
       <div className={s.bottom}></div>
       {sets.map(set => {

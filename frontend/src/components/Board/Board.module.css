@@ -6,7 +6,6 @@
   height: var(--d-board-height);
   overflow: hidden;
   flex-shrink: 0;
-  cursor: none;
 
   &:before {
     content: '';
@@ -65,4 +64,8 @@
 
 .one {
   opacity: 1;
+}
+
+.pointer {
+  cursor: none;
 }

@@ -136,7 +136,7 @@ const App = () => {
     }
 
   const random = useCallback(() => {
-    engine.random(population * 3)
+    engine.random()
     forceUpdate()
   }, [])
   const mutate = useCallback(() => {
