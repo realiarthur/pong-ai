@@ -102,7 +102,7 @@ export class EngineClass {
       generation.count = 1
       generation.lastSiblingIndex = leader.siblingIndex || 0
     } else if (this.rightController instanceof Intelligence) {
-      this.random(undefined, createControllerBrain(this.rightController))
+      this.random(createControllerBrain(this.rightController))
     }
   }
 
@@ -281,8 +281,8 @@ export class EngineClass {
     return set
   }
 
-  random = (count?: number, parent?: Intelligence) => {
-    count = count || parent ? this.config.population : this.config.population * 3
+  random = (parent?: Intelligence) => {
+    const count = parent ? this.config.population - 1 : this.config.population * 3
 
     if (parent) {
       this.createSet(undefined, parent)
