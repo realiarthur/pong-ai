@@ -1,14 +1,25 @@
 import { Intelligence } from './Intelligence'
-import { KeyboardController } from './KeyboardController'
-import { getConfig, Config, subscribe } from './config'
+import { getConfig, subscribe } from './config'
 
 const { paddleWidth, paddleHeight, boardWidth, boardHeight, playerSpeed, boardPadding } =
   getConfig()
 
 export type Side = 'left' | 'right'
-export type Vector2 = [number, number]
 export const controllers = ['keys', 'pointer', 'env', 'ai'] as const
 export type Controller = (typeof controllers)[number]
+
+const xPositions: Record<Side, { back: number; center: number; edge: number }> = {
+  left: {
+    back: boardPadding,
+    center: boardPadding + paddleWidth / 2,
+    edge: boardPadding + paddleWidth,
+  },
+  right: {
+    back: boardWidth - boardPadding,
+    center: boardWidth - boardPadding - paddleWidth / 2,
+    edge: boardWidth - boardPadding - paddleWidth,
+  },
+}
 
 export type PlayerClassProps = {
   side: Side
@@ -19,36 +30,30 @@ export type PlayerClassProps = {
 
 export class PlayerClass {
   side: Side
+  controller: Controller
+  brain?: Intelligence
   xEdge: number
   xCenter: number
   xBack: number
   yTop: number
   yBottom: number
-  height: number = paddleHeight
-  controller: Controller
-  brain?: Intelligence
-  score: number = 0
-  energy = 1
-  previousDirection = -1 | 1
+  height = paddleHeight
+  score = 0
+  speed = playerSpeed
   unsubscriber?: () => void
-  speed: number = playerSpeed
-  keyboardController?: KeyboardController
 
   constructor({ side, height = paddleHeight, controller = 'keys', brain }: PlayerClassProps) {
     this.side = side
-    this.xEdge =
-      side === 'left' ? paddleWidth + boardPadding : boardWidth - paddleWidth - boardPadding
-    this.xCenter = side === 'left' ? this.xEdge - paddleWidth / 2 : this.xEdge + paddleWidth / 2
-    this.xBack = side === 'left' ? this.xEdge - paddleWidth : this.xEdge + paddleWidth
-    this.height = controller === 'env' ? boardHeight : height
-    this.yTop = boardHeight / 2 - this.height / 2
-    this.yBottom = this.yTop + this.height
     this.controller = controller
     this.brain = brain
 
-    if (controller === 'keys') {
-      this.keyboardController = new KeyboardController()
-    }
+    this.xEdge = xPositions[side].edge
+    this.xCenter = xPositions[side].center
+    this.xBack = xPositions[side].back
+
+    this.height = controller === 'env' ? boardHeight : height
+    this.yTop = boardHeight / 2 - this.height / 2
+    this.yBottom = this.yTop + this.height
 
     this.unsubscriber = subscribe(config => {
       this.speed = this.controller === 'ai' ? config.aiSpeed : config.playerSpeed
@@ -57,23 +62,16 @@ export class PlayerClass {
 
   destroy = () => {
     this.unsubscriber?.()
-    this.keyboardController?.destroy()
-  }
-
-  refill = () => {
-    this.energy = 1
   }
 
   updatePosition = (direction: number) => {
     if (direction === 0) return
-
     if ((this.yTop <= 0 && direction < 0) || (this.yBottom >= boardHeight && direction > 0)) return
-
     this.setPosition(this.yTop + direction * this.speed)
   }
 
-  setPosition = (y: number, center = false) => {
-    const yTop = center ? y - this.height / 2 : y
+  setPosition = (y: number, offsetToPlayerCenter = false) => {
+    const yTop = offsetToPlayerCenter ? y - this.height / 2 : y
     this.yTop = Math.max(0, Math.min(boardHeight - this.height, yTop))
     this.yBottom = this.yTop + this.height
   }

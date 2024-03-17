@@ -1,9 +1,10 @@
 import { FC, Fragment, useMemo } from 'react'
-import { Intelligence as IntelligenceClass } from 'classes'
-import cx from 'classnames'
-import s from './Intelligence.module.css'
-import { getNumberString } from 'utils/getNumberString'
 import debounceRender from 'react-debounce-render'
+import cx from 'classnames'
+import { Intelligence as IntelligenceClass } from 'classes'
+
+import { getNumberString } from './getNumberString'
+import s from './Intelligence.module.css'
 
 const NEURON_WIDTH = 35
 const NEURON_HEIGHT = 16

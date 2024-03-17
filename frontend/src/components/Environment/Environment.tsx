@@ -1,7 +1,7 @@
 import { FC, FocusEvent, InputHTMLAttributes, useEffect, useState } from 'react'
 import { getConfig, setConfig, Config, subscribe } from 'classes'
 import s from './Environment.module.css'
-import { track } from 'utils/amplitude'
+import { track } from 'core/amplitude'
 
 const initConfig = getConfig()
 

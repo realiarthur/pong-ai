@@ -3,11 +3,13 @@ import cx from 'classnames'
 import { EngineClass, getConfig } from 'classes'
 import s from './SiblingsMonitor.module.css'
 
-const SiblingsMonitor: FC<{ engine: EngineClass }> = ({ engine }) => {
-  const {
-    statistic: { population, generationsStat },
-    iterationTicks,
-  } = engine
+type SiblingsMonitorProps = {
+  statistic: EngineClass['statistic']
+  leader: EngineClass['leader']
+}
+
+const SiblingsMonitor: FC<SiblingsMonitorProps> = ({ statistic, leader }) => {
+  const { population, generationsStat, currentIterationTicks } = statistic
 
   const { population: maxPopulation, surviversCount } = getConfig()
   const maxIterationCount = maxPopulation - surviversCount
@@ -23,7 +25,7 @@ const SiblingsMonitor: FC<{ engine: EngineClass }> = ({ engine }) => {
           {values && !!values.count && (
             <div
               className={cx(s.item, {
-                [s.watched]: generationNumber === engine.leader?.player.brain?.generation,
+                [s.watched]: generationNumber === leader?.player.brain?.generation,
               })}
             >
               <div
@@ -61,7 +63,7 @@ const SiblingsMonitor: FC<{ engine: EngineClass }> = ({ engine }) => {
         ></div>
         <p className={s.monitorItemTitle}>
           <span>selected {iterationPercent}%</span>
-          <span className={s.itemCount}>{iterationTicks} frms</span>
+          <span className={s.itemCount}>{currentIterationTicks} frms</span>
         </p>
       </div>
     </div>

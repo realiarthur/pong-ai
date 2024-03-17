@@ -1,8 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import './index.css'
 import App from './components/App/App'
-import { init, track } from './utils/amplitude'
+import { init, track } from './core/amplitude'
+import './index.css'
 
 init()
 track('OPEN')

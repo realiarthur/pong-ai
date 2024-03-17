@@ -1,13 +1,10 @@
 import { GameSet } from './GameSet'
-import { Statistic } from './Generation'
+import { Statistic } from './Statistic'
 import { Intelligence } from './Intelligence'
 import { Controller, PlayerClass } from './PlayerClass'
 import { getConfig, setConfig, subscribe } from './config'
-import { forEachRight } from './utils/forEachRight'
-import { getSavedPlayers } from './utils/getSavedPlayers'
 
-const LOCAL_STORAGE_LEADER = 'leader'
-const LEADER_AUTO_UPDATE_TIMEOUT = 7500
+export const FIRST_GENERATION_MULTI = 3
 
 type Leader = {
   set: GameSet
@@ -15,31 +12,27 @@ type Leader = {
 }
 
 export class EngineClass {
-  savedPlayers = getSavedPlayers()
-  config = getConfig()
-  unsubscriber = subscribe(config => {
-    this.config = config
-  })
-
   leftController: Controller | Intelligence = 'keys'
   rightController: Controller | Intelligence = 'ai'
+
   hasAi = false
   hasOnlyAi = false
   hasEnv = false
   hasEnvAi = false
-  hasHuman = false
   hasPointer = false
   hasKeys = false
+  hasHuman = false
 
   sets: GameSet[] = []
   firstGeneration: GameSet[] = []
   statistic = new Statistic()
-
   leader?: Leader
 
-  status: 'gene poll generation' | 'selection' | 'final selection' = 'gene poll generation'
-  iterationTicks = 0
-  initDeathScore = getConfig().deathScore
+  config = getConfig()
+  unsubscriber = subscribe(config => {
+    this.config = config
+  })
+  initDeathScore?: number
 
   destroy = () => {
     this.unsubscriber()
@@ -51,6 +44,7 @@ export class EngineClass {
   ) => {
     this.leftController = leftController
     this.rightController = rightController
+
     this.hasAi =
       this.leftController === 'ai' ||
       this.leftController instanceof Intelligence ||
@@ -66,78 +60,54 @@ export class EngineClass {
     this.hasHuman = this.hasKeys || this.hasPointer
 
     this.reset()
-
-    const createControllerBrain = (controller: Controller | Intelligence) => {
-      if (controller instanceof Intelligence) {
-        // TODO how to prevent leader sibling index
-        this.statistic.increase(controller.generation)
-        return new Intelligence({ ...controller })
-      } else if (controller === 'ai') {
-        const siblingIndex = this.statistic.increase(1)
-        return new Intelligence({
-          generation: 1,
-          siblingIndex,
-        })
-      }
-    }
-
-    if (!this.hasEnv) {
-      const set = this.createSet(
-        createControllerBrain(this.leftController),
-        createControllerBrain(this.rightController),
-      )
-
-      const index = this.leftController === 'ai' ? 0 : 1
-
-      const leader = set.players[index].brain
-      if (!leader) return
-
-      this.leader = {
-        set,
-        player: set.players[index],
-      }
-
-      const generationNumber = leader?.generation || 0
-      const generation = this.statistic.createGeneration(generationNumber)
-      generation.count = 1
-      generation.lastSiblingIndex = leader.siblingIndex || 0
-    } else if (this.rightController instanceof Intelligence) {
-      this.random(createControllerBrain(this.rightController))
-    }
-  }
-
-  restart = () => {
-    this.sets.map(set => {
-      set.players.map(player => player.reset())
-      set.ball.reset()
-    })
   }
 
   reset = () => {
     this.sets = []
     this.statistic = new Statistic()
     this.leader = undefined
-    if (this.hasEnv) {
-      this.status = 'gene poll generation'
+
+    const createBrainCopy = (controller: Controller | Intelligence) => {
+      if (controller instanceof Intelligence) {
+        this.statistic.increase(controller.generation)
+        return new Intelligence({ ...controller })
+      }
+    }
+
+    if (!this.hasEnv) {
+      const onScore = (set: GameSet) => {
+        const leader = set.getWinner()
+        this.leader = {
+          set,
+          player: leader,
+        }
+      }
+      this.createSet(
+        createBrainCopy(this.leftController),
+        createBrainCopy(this.rightController),
+        onScore,
+      )
+    } else {
+      const parent = createBrainCopy(this.rightController)
+      this.random(parent)
     }
   }
 
-  update = () => {
-    if (!this.statistic.population) return []
+  tick = () => {
+    if (!this.statistic.population) return
 
     if (this.hasHuman || this.hasOnlyAi) {
       const set = this.sets[0]
       set.tick()
-      return [set]
+      return
     }
 
-    this.iterationTicks = this.iterationTicks + 1
     const { deathScore } = this.config
+    this.statistic.tick()
 
     this.sets.forEach(set => {
       set.tick()
       const [wall, ai] = set.players
-
       if (!ai.brain) return
 
       if (wall.score > deathScore) {
@@ -152,23 +122,39 @@ export class EngineClass {
         }
       }
     })
+  }
 
-    return [...this.sets]
+  killSet = (set?: GameSet) => {
+    if (!set) return
+
+    const index = this.sets.indexOf(set)
+    if (index === -1) return
+
+    this.sets[index].ball.destroy()
+    this.sets[index].players.forEach(player => {
+      if (player.brain) {
+        player.brain.destroy()
+        this.statistic.decrease(player.brain.generation)
+      }
+      player.destroy()
+    })
+
+    this.sets.splice(index, 1)
+
+    if (this.statistic.population <= this.config.surviversCount) {
+      this.generateGeneration()
+    }
   }
 
   generateGeneration() {
     if (!this.statistic.population) return
 
-    if (!this.firstGeneration.length) {
-      this.firstGeneration = [...this.sets]
-      this.status = 'selection'
+    this.statistic.newGeneration()
+
+    if (this.initDeathScore === null) {
       this.initDeathScore = this.config.deathScore
     }
 
-    console.debug(
-      `[${this.statistic.getLastGenerationNumber(() => true)}] ${this.iterationTicks} frms`,
-    )
-    this.iterationTicks = 0
     this.sets.forEach(set => {
       set.players[0].reset(false)
       set.players[1].reset(false)
@@ -177,88 +163,38 @@ export class EngineClass {
     const childrenCount = Math.floor(
       (this.config.population - this.statistic.population) / this.statistic.population,
     )
+    if (!childrenCount) return
 
-    if (childrenCount) {
-      const setsForDivide = [...this.sets]
-
-      if (this.config.crossover) {
-        const setsForCrossover = [...this.sets]
-        const newGeneration = this.statistic.getLastGenerationNumber(() => true) + 1
-        this.crossover(setsForCrossover, childrenCount / 2, newGeneration)
-        this.divide(setsForDivide, childrenCount / 2)
-      } else {
-        this.divide(setsForDivide, childrenCount)
-      }
-    }
-
-    this.shiftEnv()
+    const setsForDivide = [...this.sets]
+    this.divide(setsForDivide, childrenCount)
+    this.shiftEnvironment()
   }
 
-  shiftEnv = () => {
+  shiftEnvironment = () => {
+    if (!this.initDeathScore) {
+      this.initDeathScore = this.config.deathScore
+    }
     const generation = this.statistic.getLastGenerationNumber()
     setConfig({ deathScore: Math.floor(this.initDeathScore / generation) })
   }
 
   divide(sets: GameSet[], childrenCount: number) {
-    console.debug('divide')
     sets.forEach(set => {
-      const player = set.players[1] //
-      if (!player.brain) return false
+      const [, ai] = set.players
+      if (!ai.brain) return false
 
       for (let index = 0; index < childrenCount; index++) {
-        const siblingIndex = this.statistic.increase(player.brain.generation + 1)
-        this.createSet(undefined, player.brain.mutate(siblingIndex))
+        const siblingIndex = this.statistic.increase(ai.brain.generation + 1)
+        this.createSet(undefined, ai.brain.mutate(siblingIndex))
       }
     })
   }
 
-  crossover(sets: GameSet[], childrenCount: number, generation: number) {
-    console.debug('crossover')
-    const secondParentSets = [...sets, ...this.firstGeneration]
-
-    sets.forEach(set => {
-      const player1 = set.players[1] // TODO
-      if (!player1.brain) return false
-
-      const set2Index = Math.floor(Math.random() * secondParentSets.length)
-      const set2 = secondParentSets[set2Index]
-      const player2 = set2.players[1] // TODO
-      if (!player2.brain) return false
-
-      for (let index = 0; index < childrenCount / 2; index++) {
-        const siblingIndex = this.statistic.increase(generation, 2)
-
-        const [child1, child2] = Intelligence.crossover(
-          player1.brain,
-          player2.brain,
-          generation,
-          siblingIndex,
-        )
-
-        this.createSet(undefined, child1)
-        this.createSet(undefined, child2)
-      }
-    })
-  }
-
-  createBrain = (brain?: Intelligence, mutate = true) => {
-    const siblingIndex = this.statistic.increase((brain?.generation ?? 0) + 1)
-
-    if (brain && !mutate) {
-      return brain
-    }
-
-    if (!brain) {
-      return new Intelligence({
-        generation: 1,
-        siblingIndex,
-      })
-    }
-
-    return brain.mutate(siblingIndex)
-  }
-
-  createSet = (leftBrain?: Intelligence, rightBrain?: Intelligence) => {
+  createSet = (
+    leftBrain?: Intelligence,
+    rightBrain?: Intelligence,
+    onScore?: (set: GameSet) => void,
+  ) => {
     const players = [
       new PlayerClass({
         side: 'left',
@@ -272,17 +208,15 @@ export class EngineClass {
       }),
     ] as const
 
-    const key = `${players[0].brain?.getKey() || players[0].controller}-${
-      players[1].brain?.getKey() || players[1].controller
-    }`
-
-    const set = new GameSet(players, key)
+    const set = new GameSet(players, onScore)
     this.sets.push(set)
     return set
   }
 
   random = (parent?: Intelligence) => {
-    const count = parent ? this.config.population - 1 : this.config.population * 3
+    const count = parent
+      ? this.config.population - 1
+      : this.config.population * FIRST_GENERATION_MULTI
 
     if (parent) {
       this.createSet(undefined, parent)
@@ -299,51 +233,5 @@ export class EngineClass {
           })
       this.createSet(undefined, brain)
     }
-  }
-
-  mutateLeader = (count = this.config.population) => {
-    const brain = this.leader?.player.brain
-    if (!brain) return
-
-    for (let index = 0; index < count; index++) {
-      const siblingIndex = this.statistic.increase(brain.generation + 1)
-
-      const child = brain.mutate(siblingIndex)
-
-      this.createSet(undefined, child)
-    }
-  }
-
-  killSet = (set?: GameSet) => {
-    const index = set ? this.sets.indexOf(set) : -1
-    if (!set || index === -1) return
-
-    set.kill()
-    this.sets[index].players.forEach(player => {
-      player.destroy()
-      if (!player.brain) return
-      this.statistic.decrease(player.brain.generation)
-    })
-
-    this.sets[index].ball.destroy()
-
-    this.sets.splice(index, 1)
-
-    if (this.statistic.population <= this.config.surviversCount) {
-      this.generateGeneration()
-    }
-  }
-
-  saveLeader = () => {
-    const brain = this.leader?.player.brain
-    if (brain) {
-      const value = brain.serialize()
-      localStorage.setItem(LOCAL_STORAGE_LEADER, value)
-      localStorage.setItem(
-        `${LOCAL_STORAGE_LEADER}#${brain.generation}.${brain.siblingIndex}`,
-        value,
-      )
-    }
-    this.savedPlayers = getSavedPlayers()
   }
 }

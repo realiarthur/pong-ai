@@ -2,6 +2,7 @@ import { BallClass } from './BallClass'
 import { PlayerClass } from './PlayerClass'
 import { getConfig } from './config'
 import { lerp } from './utils/collisionDetector'
+import { randomBoolean, randomSign } from './utils/random'
 
 const {
   paddleHeight,
@@ -13,10 +14,11 @@ const {
   ballDiameter,
 } = getConfig()
 
+const ballRadius = ballDiameter / 2
 const playerMaxY = boardHeight - paddleHeight
 const ballMaxDistance = boardWidth - 2 * (paddleWidth + boardPadding)
 const paddleMiddle = paddleHeight / 2
-const maxBallIntersectYFromMiddle = paddleMiddle + ballDiameter / 2
+const maxBallIntersectYFromMiddle = paddleMiddle + ballRadius
 
 export class GameSet {
   ball: BallClass
@@ -24,24 +26,34 @@ export class GameSet {
   key: string
   dead = false
 
-  constructor(players: readonly [PlayerClass, PlayerClass], key: string) {
+  constructor(players: readonly [PlayerClass, PlayerClass], onScore?: (set: GameSet) => void) {
+    this.key = `${players[0].brain?.key || players[0].controller}-${
+      players[1].brain?.key || players[1].controller
+    }`
+
     this.players = players
-    this.key = key
+
     this.ball = new BallClass({
       onFail: side => {
         if (side === 'left') {
           this.players[1].addScore()
-          this.players[0].refill()
         } else {
           this.players[0].addScore()
-          this.players[1].refill()
         }
+        onScore?.(this)
       },
     })
+    onScore?.(this)
   }
 
-  kill = () => {
-    this.dead = true
+  getWinner = () => {
+    const [left, right] = this.players
+    return left.score < right.score ? right : left
+  }
+
+  reset = () => {
+    this.players.forEach(player => player.reset())
+    this.ball.reset()
   }
 
   tick = () => {
@@ -51,7 +63,7 @@ export class GameSet {
     } = this
 
     const prevX = ball.x
-    ball.update()
+    ball.tick()
 
     const scaledBallY = ball.y / boardHeight
 
@@ -65,8 +77,6 @@ export class GameSet {
       ])
 
       left.updatePosition(direction)
-    } else if (left.controller === 'keys') {
-      left.updatePosition(left.keyboardController?.getDirection() || 0)
     }
 
     if (right.brain) {
@@ -82,38 +92,50 @@ export class GameSet {
     }
 
     this.players.forEach(keeper => {
-      if (ball.shouldBounced(keeper, prevX)) {
-        const bounceAngle = this.getPlayerIntersectAngle(keeper)
-        const speedCoefficient = 1 // this.getEnvBallSpeed(keeper)
-        ball.setAngle(bounceAngle, speedCoefficient)
-        left.refill()
-        right.refill()
+      if (this.shouldBounced(keeper, prevX)) {
+        const bounceAngle = this.getBounceAngleAbs(keeper)
+        ball.setAngle(bounceAngle, keeper.side === 'right')
       }
     })
   }
 
-  getEnvBallSpeed = (keeper: PlayerClass) => {
-    const randomizeSpeed = keeper.controller === 'env' ? Math.random() > 0.5 : false
-    return randomizeSpeed ? lerp(0.75, 1.25, Math.random()) : 1
+  shouldBounced = (player: PlayerClass, prevX: number) => {
+    const { ball } = this
+    const offsetSign = player.side === 'left' ? -1 : 1
+    const offset = offsetSign * ballRadius
+
+    const ballSidePoint = ball.x + offset
+    const prevBallSidePoint = prevX + offset
+
+    const sidedIsMore = (a: number, b: number) => (player.side === 'left' ? a > b : a < b)
+
+    if (sidedIsMore(ballSidePoint, player.xEdge)) return false
+    if (sidedIsMore(player.xEdge, prevBallSidePoint) && sidedIsMore(player.xCenter, ballSidePoint))
+      return false
+    if (player.yTop > ball.y + ballRadius || player.yBottom < ball.y - ballRadius) return false
+
+    ball.serve = false
+    ball.x = player.xEdge - offset - offsetSign
+    return true
   }
 
-  getPlayerIntersectAngle = (keeper: PlayerClass) => {
+  getBounceAngleAbs = (keeper: PlayerClass) => {
     if (keeper.controller === 'env') {
       const { wallMinAngle } = getConfig()
       const wallMinRadAngle = (wallMinAngle / 180) * Math.PI
 
-      const consumeMinAngle = Math.random() > 0.5
-      const angleSign = Math.sign(Math.random() - 0.5)
+      const consumeMinAngle = randomBoolean()
+      const angleSign = randomSign()
       const bounceAngle =
         angleSign *
         (consumeMinAngle
           ? lerp(wallMinRadAngle, maxBounceAngle, Math.random())
           : maxBounceAngle * Math.random())
-      return keeper.side === 'left' ? bounceAngle : Math.PI - bounceAngle
-    } else {
-      const relativeIntersectY = keeper.yTop + paddleMiddle - this.ball.y
-      const bounceAngle = -(relativeIntersectY / maxBallIntersectYFromMiddle) * maxBounceAngle
-      return keeper.side === 'left' ? bounceAngle : Math.PI - bounceAngle
+      return bounceAngle
     }
+
+    const relativeIntersectY = keeper.yTop + paddleMiddle - this.ball.y
+    const bounceAngle = -(relativeIntersectY / maxBallIntersectYFromMiddle) * maxBounceAngle
+    return bounceAngle
   }
 }

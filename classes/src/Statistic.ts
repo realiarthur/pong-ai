@@ -1,9 +1,8 @@
-import { Intelligence } from './Intelligence'
-
 export class GenerationStat {
-  number: number = 0
-  count: number = 0
-  lastSiblingIndex: number = -1
+  number = 0
+  count = 0
+  dead = 0
+  lastSiblingIndex = -1
 
   constructor(number?: number) {
     this.number = number ?? 0
@@ -11,6 +10,7 @@ export class GenerationStat {
 
   decrease = (count = 1) => {
     this.count = this.count - count
+    this.dead = this.dead + count
   }
 
   increase = (count = 1) => {
@@ -20,9 +20,16 @@ export class GenerationStat {
   }
 }
 
+type IterationStat = {
+  ticks: number
+  maxGeneration: number
+}
+
 export class Statistic {
   generationsStat: Array<GenerationStat | undefined> = []
   population = 0
+  currentIterationTicks = 0
+  iterations: IterationStat[] = []
 
   createGeneration = (number: number) => {
     const generation = new GenerationStat(number)
@@ -32,12 +39,9 @@ export class Statistic {
 
   increase = (generationNumber: number, count = 1) => {
     this.population = this.population + count
-
     const generation =
       this.generationsStat[generationNumber] ?? this.createGeneration(generationNumber)
-
     const siblingIndex = generation.increase(count)
-
     return siblingIndex
   }
 
@@ -46,17 +50,23 @@ export class Statistic {
     this.generationsStat[generationNumber]?.decrease()
   }
 
-  getLastGenerationNumber = (callback?: (generation: GenerationStat) => void) => {
-    return (
-      [...this.generationsStat]
-        .reverse()
-        .find(item => (callback && item ? callback(item) : item?.count))?.number || 0
+  getLastGenerationNumber = () => {
+    return [...this.generationsStat].reverse().find(item => item?.count)?.number || 0
+  }
+
+  newGeneration() {
+    const iterationStat: IterationStat = {
+      ticks: this.currentIterationTicks,
+      maxGeneration: this.getLastGenerationNumber(),
+    }
+    this.currentIterationTicks = 0
+    this.iterations.push(iterationStat)
+    console.log(
+      `[${this.iterations.length}] ${iterationStat.ticks} frms, maxGen: ${iterationStat.maxGeneration}`,
     )
   }
 
-  hasGeneration = (generationNumber: number) => {
-    const generation = this.generationsStat[generationNumber]
-
-    return !!generation && !!generation.count
+  tick() {
+    this.currentIterationTicks = this.currentIterationTicks + 1
   }
 }

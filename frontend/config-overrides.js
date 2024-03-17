@@ -1,5 +1,3 @@
-const { config } = require('process')
-
 const postCssConfig = config => {
   const updatedConfig = { ...config }
   const loaders = updatedConfig.module.rules[1].oneOf

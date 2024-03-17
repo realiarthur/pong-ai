@@ -1,8 +1,8 @@
 import { FC, ButtonHTMLAttributes } from 'react'
-import { useKey } from 'utils/useKey'
+import { useKey } from 'core/useKey'
 import s from './Button.module.css'
 import cx from 'classnames'
-import { track } from 'utils/amplitude'
+import { track } from 'core/amplitude'
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   onClick: () => void

@@ -1,4 +1,7 @@
-import { Intelligence } from '../Intelligence'
+import { Intelligence, PlayerClass } from 'classes'
+import { useState } from 'react'
+
+const LOCAL_STORAGE_LEADER = 'leader'
 
 export const defaultPlayers = {
   'leader#1.601':
@@ -15,3 +18,19 @@ export const getSavedPlayers = () =>
       .filter((value): value is [string, Intelligence] => !!value[0] && !!value[1])
       .sort((a, b) => b[1].birthTime - a[1].birthTime),
   )
+
+export const useSavedPlayers = () => {
+  const [players, set] = useState<Record<string, Intelligence>>(getSavedPlayers())
+
+  const savePlayer = (player?: PlayerClass) => {
+    if (!player?.brain) return
+
+    const { key } = player.brain
+    const value = player.brain.serialize()
+    localStorage.setItem(LOCAL_STORAGE_LEADER, value)
+    localStorage.setItem(`${LOCAL_STORAGE_LEADER}${key}`, value)
+    set({ ...players, [key]: player.brain })
+  }
+
+  return [players, savePlayer] as const
+}

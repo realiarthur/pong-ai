@@ -1,6 +1,5 @@
 let config = {
   VISIBLE_SETS_COUNT: 25,
-  KEYBOARD_REPEAT_TIMEOUT: 10,
 
   boardWidth: 629,
   boardHeight: 421,
@@ -9,25 +8,21 @@ let config = {
   ballDiameter: 15,
   paddleWidth: 10,
   paddleHeight: 75,
+
   maxBounceAngle: Math.PI / 4.5,
+  wallMinAngle: 40,
 
   playerSpeed: 12,
   aiSpeed: 8,
-
   ballSpeed: 20,
 
-  wallMinAngle: 40,
-
   fail: -1,
-
   maxMutation: 0.1,
   maxInitBias: 0.5,
 
   population: 1000,
   deathScore: 21,
   surviversCount: 100,
-  populationIncreaseMulti: 0.01,
-  crossover: false,
 }
 
 export type Config = typeof config

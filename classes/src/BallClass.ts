@@ -1,5 +1,6 @@
 import { PlayerClass, Side } from './PlayerClass'
 import { getConfig, subscribe } from './config'
+import { randomBoolean, signRandom } from './utils/random'
 
 const { boardWidth, boardHeight, ballDiameter, ballSpeed: initSpeed } = getConfig()
 
@@ -8,12 +9,11 @@ const initX = boardWidth / 2
 const initY = boardHeight / 2
 const failLeftLine = -ballRadius
 const failRightLine = boardWidth + ballRadius
-
-type BallProps = {
-  speed?: number
-  onFail: (side: Side) => void
-}
 const sin45 = 1 / Math.sqrt(2)
+
+const minBallY = ballRadius
+const maxBallY = boardHeight - ballRadius
+
 const getVxAbs = (speed: number) => speed * sin45
 
 // Make angle as [-PI, +PI]
@@ -29,29 +29,32 @@ const mirrorAngle = (angle: number) => {
   return Math.PI - angle
 }
 
+type BallProps = {
+  speed?: number
+  onFail: (side: Side) => void
+}
 export class BallClass {
   serve = true
-  x: number = initX
-  y: number = initY
-  angle: number = 0
-  vx: number = 0
-  vxPart: number = 0
-  xvAbs: number = getVxAbs(initSpeed)
-  vy: number = 0
-  vyPart: number = 0
-  speed: number = initSpeed
+  x = initX
+  y = initY
+  angle = 0
+  vx = 0
+  vxPart = 0
+  xvAbs = getVxAbs(initSpeed)
+  vy = 0
+  vyPart = 0
+  speed = initSpeed
   onFail: (side: Side) => void
   unsubscriber: () => void
 
   constructor({ onFail }: BallProps) {
     this.onFail = onFail
-
     this.respawn(true)
 
     this.unsubscriber = subscribe(config => {
       this.speed = config.ballSpeed
       this.xvAbs = getVxAbs(config.ballSpeed)
-      this.setAngle(this.angle)
+      this.setSpeed()
     })
   }
 
@@ -69,39 +72,42 @@ export class BallClass {
     this.x = initX
     this.y = center ? initY : this.y
 
-    const initAngle = (Math.PI * (Math.random() - 0.5)) / 3
-    const mirror = this.angle ? Math.abs(this.angle / Math.PI) > 0.5 : Math.random() > 0.5
-    this.setAngle(mirror ? mirrorAngle(initAngle) : initAngle)
+    const initAngle = (Math.PI * signRandom()) / 6
+    const mirror = this.angle ? Math.abs(this.angle / Math.PI) > 0.5 : randomBoolean()
+    this.setAngle(initAngle, mirror)
   }
 
-  setAngle = (angle: number, speedCoefficient = 1) => {
-    angle = normalizeAngle(angle)
-    this.angle = angle
-    const cos = Math.cos(angle)
+  setAngle = (angle: number, mirror = false) => {
+    if (mirror) {
+      angle = mirrorAngle(angle)
+    }
+    this.angle = normalizeAngle(angle)
+    this.setSpeed()
+  }
+
+  setSpeed = () => {
+    const speedCoefficient = this.serve ? 0.4 : 1
+    const cos = Math.cos(this.angle)
 
     const xDirection = Math.sign(cos)
-    const vxAbs = (this.serve ? this.xvAbs / 2.5 : this.xvAbs) * speedCoefficient
+    const vxAbs = this.xvAbs * speedCoefficient
     this.vx = xDirection * vxAbs
-    const vy = this.speed * Math.sin(angle) * speedCoefficient
-    this.vy = this.serve ? vy / 2.5 : vy
+    this.vy = this.speed * Math.sin(this.angle) * speedCoefficient
 
     const realAngle = Math.atan(this.vy / vxAbs)
     this.vxPart = xDirection * Math.cos(realAngle)
     this.vyPart = Math.sin(realAngle)
   }
 
-  update = () => {
-    // y
+  tick = () => {
+    // Y
     if (this.y - ballRadius <= 0 || this.y + ballRadius >= boardHeight) {
       this.setAngle(-this.angle)
     }
 
-    this.y = this.y + this.vy
+    this.y = Math.max(minBallY, Math.min(this.y + this.vy, maxBallY))
 
-    if (this.y - ballRadius < 0) this.y = ballRadius
-    if (this.y + ballRadius > boardHeight) this.y = boardHeight - ballRadius
-
-    // x
+    // X
     this.x = this.x + this.vx
 
     if (this.x <= failLeftLine) {
@@ -112,24 +118,5 @@ export class BallClass {
       this.onFail('right')
       this.respawn()
     }
-  }
-
-  shouldBounced = (player: PlayerClass, prevX: number) => {
-    const offsetSign = player.side === 'left' ? -1 : 1
-    const offset = offsetSign * ballRadius
-
-    const ballSidePoint = this.x + offset
-    const prevBallSidePoint = prevX + offset
-
-    const sidedIsMore = (a: number, b: number) => (player.side === 'left' ? a > b : a < b)
-
-    if (sidedIsMore(ballSidePoint, player.xEdge)) return
-    if (sidedIsMore(player.xEdge, prevBallSidePoint) && sidedIsMore(player.xCenter, ballSidePoint))
-      return
-    if (player.yTop > this.y + ballRadius || player.yBottom < this.y - ballRadius) return
-
-    this.serve = false
-    this.x = player.xEdge - offset - offsetSign
-    return true
   }
 }
