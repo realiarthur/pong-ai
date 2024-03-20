@@ -173,7 +173,10 @@ export class EngineClass {
       this.initDeathScore = this.config.deathScore
     }
     const generation = this.statistic.getLastGenerationNumber()
-    setConfig({ deathScore: Math.floor(this.initDeathScore / generation) })
+    const deathScore = Math.floor(this.initDeathScore / generation)
+    if (deathScore !== this.config.deathScore) {
+      setConfig({ deathScore: Math.floor(this.initDeathScore / generation) })
+    }
   }
 
   divide(sets: GameSet[], childrenCount: number) {
