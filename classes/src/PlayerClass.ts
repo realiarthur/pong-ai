@@ -1,7 +1,7 @@
 import { Intelligence } from './Intelligence'
 import { getConfig, subscribe } from './config'
 
-const { paddleWidth, paddleHeight, boardWidth, boardHeight, playerSpeed, boardPadding } =
+const { paddleWidth, paddleHeight, boardWidth, boardHeight, playerSpeed, aiSpeed, boardPadding } =
   getConfig()
 
 export type Side = 'left' | 'right'
@@ -37,9 +37,9 @@ export class PlayerClass {
   xBack: number
   yTop: number
   yBottom: number
+  speed: number
   height = paddleHeight
   score = 0
-  speed = playerSpeed
   unsubscriber?: () => void
 
   constructor({ side, height = paddleHeight, controller = 'keys', brain }: PlayerClassProps) {
@@ -55,9 +55,12 @@ export class PlayerClass {
     this.yTop = boardHeight / 2 - this.height / 2
     this.yBottom = this.yTop + this.height
 
-    this.unsubscriber = subscribe(config => {
-      this.speed = this.controller === 'ai' ? config.aiSpeed : config.playerSpeed
-    })
+    this.speed = this.controller === 'ai' ? aiSpeed : playerSpeed
+    if (this.controller === 'keys') {
+      this.unsubscriber = subscribe(config => {
+        this.speed = config.playerSpeed
+      })
+    }
   }
 
   destroy = () => {

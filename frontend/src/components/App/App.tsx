@@ -2,14 +2,7 @@ import { useEffect, Fragment, ChangeEventHandler, ChangeEvent } from 'react'
 import Board from 'components/Board/Board'
 import cx from 'classnames'
 
-import {
-  getConfig,
-  setConfig,
-  controllers,
-  Controller,
-  Side,
-  FIRST_GENERATION_MULTI,
-} from 'classes'
+import { getConfig, setConfig, controllers, Controller, Side } from 'classes'
 
 import Intelligence from 'components/Intelligence/Intelligence'
 import Environment, { EnvFields } from 'components/Environment/Environment'
@@ -50,7 +43,6 @@ const App = () => {
     setOn,
     togglePlay,
     sets,
-    visibleSets,
     restart,
     setControllers,
     forceUpdate,
@@ -206,7 +198,7 @@ const App = () => {
               <span className={cx(s.score, s.right)}>{leader?.set.players[1].score ?? 0}</span>
             </div>
             <Board
-              sets={visibleSets}
+              sets={sets}
               leader={leader?.player}
               leaderSet={leader?.set}
               hasPointer={hasPointer}

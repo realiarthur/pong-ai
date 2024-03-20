@@ -1,21 +1,27 @@
-import { useLayoutEffect, useState, useCallback, useEffect } from 'react'
-import { EngineClass, getConfig, Controller, Intelligence, GameSet } from 'classes'
+import { useLayoutEffect, useState, useCallback, useEffect, useRef } from 'react'
+import { EngineClass, getConfig, Controller, Intelligence, GameSet, subscribe } from 'classes'
 import { KeyboardController } from './KeyboardController'
 import { PointerController } from './PointerController'
 
 const { VISIBLE_SETS_COUNT } = getConfig()
 
-const engine = new EngineClass()
-const keyboardController = new KeyboardController()
+let engine = new EngineClass()
+let keyboardController = new KeyboardController()
 
 const useEngine = () => {
   const [on, setOn] = useState(true)
   const togglePlay = useCallback(() => setOn(value => !value), [])
 
   const [sets, setSets] = useState<GameSet[]>(engine.sets)
-  const forceUpdate = () => {
-    setSets([...engine.sets])
-  }
+
+  const forceUpdate = useCallback(() => {
+    const { leader } = engine
+    const visibleSets: GameSet[] = engine.sets.slice(0, VISIBLE_SETS_COUNT)
+    if (leader && !visibleSets.includes(leader?.set)) {
+      visibleSets.push(leader.set)
+    }
+    setSets(visibleSets)
+  }, [engine, setSets])
 
   useLayoutEffect(() => {
     if (!on) return
@@ -39,7 +45,19 @@ const useEngine = () => {
     return () => {
       shouldUpdate = false
     }
-  }, [on])
+  }, [on, engine, keyboardController, forceUpdate])
+
+  useEffect(() => {
+    const unsubscriber = subscribe(({ ballSpeed }) => {
+      if (ballSpeed === 0) {
+        setOn(false)
+      }
+    })
+
+    return () => {
+      unsubscriber()
+    }
+  }, [])
 
   useEffect(() => {
     if (engine.hasPointer && sets[0]) {
@@ -54,13 +72,11 @@ const useEngine = () => {
     }
   }, [engine.leftController, sets[0]])
 
-  const { leader, hasEnvAi } = engine
-  const { population, ballSpeed } = getConfig()
-
-  let visibleSets: GameSet[] = sets.slice(0, VISIBLE_SETS_COUNT)
-  if (leader && !visibleSets.includes(leader?.set)) {
-    visibleSets.push(leader.set)
-  }
+  // useCallback is needed for use key
+  const restart = useCallback(() => {
+    engine.reset()
+    forceUpdate()
+  }, [engine, forceUpdate])
 
   const setControllers = (left?: Controller | Intelligence, right?: Controller | Intelligence) => {
     const leftController = left ?? engine.leftController
@@ -69,29 +85,6 @@ const useEngine = () => {
     forceUpdate()
   }
 
-  const mutate = useCallback(() => {
-    if (!engine.leader?.player.brain) return
-    engine.random(engine.leader.player.brain)
-    forceUpdate()
-  }, [])
-
-  const kill = useCallback(() => {
-    engine.leader = undefined
-    engine.killSet(leader?.set)
-    forceUpdate()
-  }, [])
-
-  const restart = useCallback(() => {
-    engine.reset()
-    forceUpdate()
-  }, [hasEnvAi, population])
-
-  useLayoutEffect(() => {
-    if (ballSpeed === 0) {
-      setOn(false)
-    }
-  }, [ballSpeed])
-
   return {
     engine,
     on,
@@ -99,12 +92,9 @@ const useEngine = () => {
     togglePlay,
     sets,
     setSets,
-    visibleSets,
     forceUpdate,
-    restart,
-    mutate,
-    kill,
     setControllers,
+    restart,
   }
 }
 

@@ -1,8 +1,8 @@
-import { getConfig, subscribe } from './config'
-import { weighedSum, limiter, threshold } from './utils/neuronUtils'
+import { getConfig } from './config'
+import { weighedSum, limiter, threshold, tanh } from './utils/neuronUtils'
 import { signRandom, randomChoiceOrder } from './utils/random'
 
-const { maxInitBias, maxMutation } = getConfig()
+const { maxInitBias, maxMutation: initMaxMutation } = getConfig()
 const LAYERS_CONFIG = [5, 4, 2]
 
 export type Layer<T = number, TLength = void> = TLength extends number
@@ -30,11 +30,6 @@ export class Intelligence {
   values: Layer[] = []
   key: string
 
-  maxMutation = maxMutation
-  unsubscriber = subscribe(config => {
-    this.maxMutation = config.maxMutation
-  })
-
   constructor({
     generation,
     siblingIndex,
@@ -52,18 +47,14 @@ export class Intelligence {
     this.biases = biases ?? this.mapLayers(() => signRandom(maxInitBias))
   }
 
-  destroy = () => {
-    this.unsubscriber?.()
-  }
-
-  mutate = (siblingIndex: number) => {
+  mutate = (siblingIndex: number, maxMutation = initMaxMutation) => {
     return new Intelligence({
       generation: this.generation + 1,
       weights: this.mapWeights(weight => {
-        return limiter(weight + signRandom() * this.maxMutation)
+        return limiter(weight + signRandom() * maxMutation)
       }),
       biases: this.mapLayers(({ bias }) => {
-        return limiter(bias ? bias + signRandom(maxInitBias) * this.maxMutation : 0)
+        return limiter(bias ? bias + signRandom(maxInitBias) * maxMutation : 0)
       }),
       siblingIndex,
     })
@@ -117,25 +108,11 @@ export class Intelligence {
     this.values = this.mapLayers(({ bias, weights, prevLayerResult, layerIndex, neuronIndex }) => {
       const isInput = layerIndex === 0 || !prevLayerResult || !weights?.length
       if (isInput) {
-        // TODOC
-
-        // if (neuronIndex === 3 && this.values[0]) return this.values[0][1]
-        // if (neuronIndex === 4 && this.values[0]) return this.values[0][2]
-
         return inputs[neuronIndex] ?? 0
       }
 
-      // TODOC
-
-      // tanh + bias * inputs
-      // const sum = weighedSum(prevLayerResult, weights)
-      // const biased = sum + (bias || 0)
-      // const activation = tanh(biased)
-
-      // linear + bias
       const sum = weighedSum(prevLayerResult, weights)
       const activation = threshold(sum, bias || 0)
-
       return activation
     })
 

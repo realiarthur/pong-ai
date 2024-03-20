@@ -36,6 +36,7 @@ export class EngineClass {
 
   destroy = () => {
     this.unsubscriber()
+    this.sets.forEach(set => this.killSet(set))
   }
 
   setControllers = (
@@ -130,13 +131,10 @@ export class EngineClass {
     const index = this.sets.indexOf(set)
     if (index === -1) return
 
-    this.sets[index].ball.destroy()
-    this.sets[index].players.forEach(player => {
-      if (player.brain) {
-        player.brain.destroy()
-        this.statistic.decrease(player.brain.generation)
-      }
-      player.destroy()
+    this.sets[index].destroy({
+      onBrainDestroy: (brain: Intelligence) => {
+        this.statistic.decrease(brain.generation)
+      },
     })
 
     this.sets.splice(index, 1)
@@ -185,7 +183,8 @@ export class EngineClass {
 
       for (let index = 0; index < childrenCount; index++) {
         const siblingIndex = this.statistic.increase(ai.brain.generation + 1)
-        this.createSet(undefined, ai.brain.mutate(siblingIndex))
+        const child = ai.brain.mutate(siblingIndex, this.config.maxMutation)
+        this.createSet(undefined, child)
       }
     })
   }
@@ -226,7 +225,7 @@ export class EngineClass {
     for (let index = 0; index < count; index++) {
       const siblingIndex = this.statistic.increase(generation)
       const brain = parent
-        ? parent.mutate(siblingIndex)
+        ? parent.mutate(siblingIndex, this.config.maxMutation)
         : new Intelligence({
             generation,
             siblingIndex,

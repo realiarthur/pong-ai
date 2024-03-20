@@ -1,4 +1,5 @@
 import { BallClass } from './BallClass'
+import { Intelligence } from './Intelligence'
 import { PlayerClass } from './PlayerClass'
 import { getConfig } from './config'
 import { lerp } from './utils/collisionDetector'
@@ -44,6 +45,16 @@ export class GameSet {
       },
     })
     onScore?.(this)
+  }
+
+  destroy = (options?: { onBrainDestroy?: (brain: Intelligence) => void }) => {
+    this.ball.destroy()
+    this.players.forEach(player => {
+      if (player.brain) {
+        options?.onBrainDestroy?.(player.brain)
+      }
+      player.destroy()
+    })
   }
 
   getWinner = () => {

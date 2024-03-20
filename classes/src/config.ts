@@ -52,6 +52,11 @@ export const subscribe = (callback: Callback) => {
   subscribers.push(callback)
   callback(config, 'init')
   return () => {
-    subscribers = subscribers.filter(item => item !== callback)
+    for (let i = 0; i < subscribers.length; i++) {
+      if (subscribers[i] === callback) {
+        subscribers.splice(i, 1)
+        break
+      }
+    }
   }
 }

@@ -61,9 +61,7 @@ export class Statistic {
     }
     this.currentIterationTicks = 0
     this.iterations.push(iterationStat)
-    console.log(
-      `[${this.iterations.length}] ${iterationStat.ticks} frms, maxGen: ${iterationStat.maxGeneration}`,
-    )
+    console.log(`[${iterationStat.maxGeneration}] ${iterationStat.ticks} frms`)
   }
 
   tick() {
