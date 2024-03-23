@@ -93,7 +93,7 @@ const App = () => {
 
   const compare = () => {
     const players = Object.values(savedPlayers)
-    setControllers(players[1] ?? players[0], players[0])
+    setControllers(players[0], players[1] ?? players[0])
     setConfig({ ballSpeed: 20 })
     forceUpdate()
     setOn(true)
