@@ -137,6 +137,11 @@ const App = () => {
         >
           play
         </Tab>
+
+        <Tab active={tab === 'train'} onClick={train} trackId='train'>
+          train
+        </Tab>
+
         <Tab
           active={tab === 'compare'}
           onClick={compare}
@@ -144,9 +149,6 @@ const App = () => {
           trackId='compare'
         >
           compare
-        </Tab>
-        <Tab active={tab === 'train'} onClick={train} trackId='train'>
-          train
         </Tab>
       </div>
 

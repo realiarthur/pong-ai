@@ -29,7 +29,7 @@ export const useSavedPlayers = () => {
     const value = player.brain.serialize()
     localStorage.setItem(LOCAL_STORAGE_LEADER, value)
     localStorage.setItem(`${LOCAL_STORAGE_LEADER}${key}`, value)
-    set({ ...players, [key]: player.brain })
+    set({ [key]: player.brain, ...players })
   }
 
   return [players, savePlayer] as const

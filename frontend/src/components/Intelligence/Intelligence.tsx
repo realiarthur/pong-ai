@@ -35,7 +35,7 @@ const Neuron: FC<{
 }> = ({ value, bias, weights, layerIndex, layerLength, neuronIndex }) => {
   const [x, y] = useMemo(() => {
     return [getNeuronX(neuronIndex, layerLength), getNeuronY(layerIndex)]
-  }, [layerIndex, neuronIndex])
+  }, [neuronIndex, layerIndex, layerLength])
 
   let text = value
   const neuronClassName = [s.neuron]
@@ -90,7 +90,7 @@ const Intelligence: FC<{
   intelligence: IntelligenceClass
   headers: string[]
   className?: string
-}> = ({ intelligence: { values, biases, getOutputWeights }, headers, className }) => {
+}> = ({ intelligence: { values, biases, getOutputWeights, key }, headers, className }) => {
   if (!values.length) return null
 
   return (
@@ -115,10 +115,10 @@ const Intelligence: FC<{
 
         <g style={{ transform: `translateY(${1.5 * NEURON_HEIGHT}px)` }}>
           {values.map((layer, layerIndex) => (
-            <Fragment key={layerIndex}>
+            <Fragment key={`${key}-${layerIndex}`}>
               {layer.map((value, neuronIndex) => (
                 <Neuron
-                  key={neuronIndex}
+                  key={`${key}-${neuronIndex}`}
                   layerIndex={layerIndex}
                   neuronIndex={neuronIndex}
                   layerLength={layer.length}
