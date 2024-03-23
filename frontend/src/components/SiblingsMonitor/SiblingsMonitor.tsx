@@ -1,6 +1,6 @@
 import { Fragment, FC } from 'react'
 import cx from 'classnames'
-import { EngineClass, getConfig } from 'classes'
+import { EngineClass, FIRST_GENERATION_MULTI, getConfig } from 'classes'
 import s from './SiblingsMonitor.module.css'
 
 type SiblingsMonitorProps = {
@@ -9,14 +9,15 @@ type SiblingsMonitorProps = {
 }
 
 const SiblingsMonitor: FC<SiblingsMonitorProps> = ({ statistic, leader }) => {
-  const { population, generationsStat, currentIterationTicks } = statistic
+  const { population, generationsStat, currentIterationTicks, iterations } = statistic
 
   const { population: maxPopulation, surviversCount } = getConfig()
-  const maxIterationCount = maxPopulation - surviversCount
-  const iterationPercent =
-    population > maxIterationCount
-      ? 0
-      : Math.floor(100 - ((population - surviversCount) / maxIterationCount) * 100)
+
+  const maxIterationCount =
+    (iterations.length ? maxPopulation : maxPopulation * FIRST_GENERATION_MULTI) - surviversCount
+  const iterationPercent = Math.floor(
+    100 - ((population - surviversCount) / maxIterationCount) * 100,
+  )
 
   return (
     <div className={s.siblingsMonitor}>
