@@ -8,5 +8,9 @@
   "workspaces": [
     "classes",
     "frontend"
-  ]
+  ],
+  "scripts": {
+    "start": "yarn --cwd frontend start",
+    "classes": "yarn --cwd classes start"
+  }
 }
