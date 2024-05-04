@@ -173,7 +173,7 @@ We should have sufficient randomly generated individuals in the first generation
 
 Let's set the population size to 1000 individuals (3000 in first generation) and finally launch the selection:
 
-[![first launch](https://img.youtube.com/vi/sijVYBMmgPI/0.jpg)](https://www.youtube.com/watch?v=sijVYBMmgPI)
+[![first launch](https://img.youtube.com/vi/qOT36OYMzZc/0.jpg)](https://www.youtube.com/watch?v=qOT36OYMzZc)
 
 **On the right-hand side of the screen is information about the best AI player: its name, which includes its generation number, sibling index, and a picture of its brain function. Also, there is a "save" button that means keeping it for later comparisons with other AI or for playing with. Saved players are available under the "controller" select inputs above the play table, near the score.**
 
@@ -223,7 +223,7 @@ It's possible to perform the final selection by setting the "number of survivors
 
 Now, we can enjoy the spectacle of evolution:
 
-[![full selection](https://img.youtube.com/vi/rOyUGdzBs5M/0.jpg)](https://www.youtube.com/watch?v=rOyUGdzBs5M)
+[![full selection](https://img.youtube.com/vi/_oG52IOx-2A/0.jpg)](https://www.youtube.com/watch?v=_oG52IOx-2A)
 
 The final selection was a real fight to the death! #44.1045 won, and I've saved it and compared it with #1.601 to see what the evolution gives us - that was a flawless victory!
 
