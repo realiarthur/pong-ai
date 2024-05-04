@@ -1,8 +1,6 @@
 # Pong AI: Genetic algorithm in a browser
 
-## Article
-
-// todo
+// todo: add article link
 
 ## How to start
 
