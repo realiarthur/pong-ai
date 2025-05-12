@@ -114,7 +114,7 @@ const App = () => {
   }
 
   useEffect(() => {
-    play()
+    compare()
   }, [])
 
   const handleChangeController = (side: Side) => (e: ChangeEvent<HTMLSelectElement>) => {
